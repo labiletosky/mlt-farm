@@ -2,1004 +2,376 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MLT Farm — Yield Farming on LitVM</title>
+<meta name="description" content="The first yield farming protocol on LitVM — Litecoin's EVM-compatible ZK rollup. Stake MLT, earn rewards every second."/>
 <link rel="icon" type="image/png" href="favicon.png"/>
 <link rel="shortcut icon" href="favicon.png"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>MLT Farm</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Clash+Display:wght@500;600;700&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --gold:#F5A623;
-  --gold-dim:rgba(245,166,35,0.12);
-  --gold-border:rgba(245,166,35,0.22);
-  --gold-text:#F5A623;
-  --bg:#0C0C0F;
-  --surface:#111114;
-  --surface2:#18181D;
-  --surface3:#1F1F26;
-  --line:rgba(255,255,255,0.06);
-  --line2:rgba(255,255,255,0.1);
-  --text:#FFFFFF;
-  --muted:#6B7280;
-  --muted2:#9CA3AF;
-  --green:#22C55E;
-  --green-dim:rgba(34,197,94,0.1);
-  --red:#EF4444;
-  --r:20px;
-  --r2:14px;
-  --r3:10px;
+  --gold:#F5A623;--gold2:#FBBF24;--gold3:#D4820A;
+  --gold-dim:rgba(245,166,35,0.1);--gold-border:rgba(245,166,35,0.2);
+  --bg:#0C0C0F;--s1:#111114;--s2:#18181D;--s3:#1F1F26;
+  --line:rgba(255,255,255,0.06);--line2:rgba(255,255,255,0.1);
+  --text:#FFFFFF;--muted:#6B7280;--muted2:#9CA3AF;
+  --green:#22C55E;--green-dim:rgba(34,197,94,0.1);
 }
-html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden}
 
-/* background grid */
-body::before{
-  content:'';position:fixed;inset:0;z-index:0;
-  background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);
-  background-size:48px 48px;
-  pointer-events:none;
-}
-body::after{
-  content:'';position:fixed;inset:0;z-index:0;
-  background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(245,166,35,0.07) 0%,transparent 60%);
-  pointer-events:none;
-}
+/* grid bg */
+body::before{content:'';position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);background-size:48px 48px;pointer-events:none}
 
-.wrap{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column}
+/* glow */
+.glow-top{position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:800px;height:400px;background:radial-gradient(ellipse,rgba(245,166,35,0.08) 0%,transparent 70%);pointer-events:none;z-index:0}
+.glow-left{position:fixed;top:30%;left:-200px;width:500px;height:500px;background:radial-gradient(ellipse,rgba(245,166,35,0.04) 0%,transparent 70%);pointer-events:none;z-index:0}
 
 /* nav */
-nav{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 2rem;height:64px;
-  border-bottom:1px solid var(--line);
-  backdrop-filter:blur(12px);
-  position:sticky;top:0;z-index:10;
-  background:rgba(12,12,15,0.8);
-}
-.nav-logo{display:flex;align-items:center;gap:10px}
-.logo-gem{
-  width:32px;height:32px;border-radius:9px;
-  background:linear-gradient(135deg,#F5A623,#D4820A);
-  display:flex;align-items:center;justify-content:center;
-}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;border-bottom:1px solid var(--line);backdrop-filter:blur(16px);background:rgba(12,12,15,0.7)}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-gem{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#F5A623,#D4820A);display:flex;align-items:center;justify-content:center}
 .logo-gem svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-.logo-word{font-size:15px;font-weight:600;letter-spacing:-0.02em}
+.logo-word{font-size:15px;font-weight:600;letter-spacing:-.02em;color:var(--text)}
 .logo-word span{color:var(--gold)}
-.nav-pills{display:flex;align-items:center;gap:4px}
-.nav-pill{
-  padding:6px 14px;border-radius:8px;font-size:13px;font-weight:500;
-  color:var(--muted);cursor:pointer;border:none;background:transparent;
-  transition:all .15s;
-}
-.nav-pill:hover{color:var(--text);background:var(--surface2)}
-.nav-pill.on{color:var(--text);background:var(--surface2)}
-.connect-btn{
-  display:flex;align-items:center;gap:8px;
-  padding:8px 18px;border-radius:12px;
-  border:1px solid var(--line2);background:var(--surface2);
-  color:var(--text);font-size:13px;font-weight:500;
-  cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;
-}
-.connect-btn:hover{border-color:var(--gold-border);background:var(--surface3)}
-.connect-btn.on{border-color:var(--gold-border);color:var(--gold)}
-.wallet-menu{position:relative;display:inline-block}
-.wallet-dropdown{
-  display:none;position:absolute;right:0;top:calc(100% + 8px);
-  background:var(--surface2);border:1px solid var(--line2);
-  border-radius:var(--r2);min-width:180px;z-index:100;
-  overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4);
-}
-.wallet-dropdown.open{display:block}
-.wd-address{
-  padding:12px 14px;font-size:12px;color:var(--muted);
-  border-bottom:1px solid var(--line);word-break:break-all;
-  letter-spacing:.02em;
-}
-.wd-item{
-  display:flex;align-items:center;gap:8px;
-  padding:11px 14px;font-size:13px;font-weight:500;
-  color:var(--text);cursor:pointer;transition:background .15s;
-  border:none;background:transparent;width:100%;
-  font-family:'Inter',sans-serif;
-}
-.wd-item:hover{background:var(--surface3)}
-.wd-item.red{color:#EF4444}
-.wd-item svg{width:15px;height:15px;opacity:.6}
+.nav-links{display:flex;align-items:center;gap:4px}
+.nav-link{padding:7px 14px;border-radius:8px;font-size:13px;color:var(--muted);text-decoration:none;transition:all .15s}
+.nav-link:hover{color:var(--text);background:var(--s2)}
+.nav-cta{display:flex;align-items:center;gap:8px;padding:9px 20px;border-radius:12px;background:linear-gradient(135deg,#F5A623,#D4820A);color:#fff;font-size:13px;font-weight:600;text-decoration:none;transition:all .2s;letter-spacing:-.01em}
+.nav-cta:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 6px 20px rgba(245,166,35,0.3)}
+.nav-cta svg{width:14px;height:14px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
 
-/* pools + analytics pages */
-.page{display:none}
-.page.active{display:block}
-.coming-card{
-  max-width:480px;margin:0 auto;
-  background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--r);padding:3rem 2rem;text-align:center;
-}
-.coming-icon{
-  width:56px;height:56px;border-radius:16px;
-  background:var(--gold-dim);border:1px solid var(--gold-border);
-  display:flex;align-items:center;justify-content:center;
-  margin:0 auto 1.25rem;
-}
-.coming-icon svg{width:26px;height:26px;stroke:var(--gold);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.coming-title{font-size:20px;font-weight:600;letter-spacing:-.02em;margin-bottom:8px}
-.coming-sub{font-size:14px;color:var(--muted2);line-height:1.6;max-width:320px;margin:0 auto 1.5rem}
-.coming-badge{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:6px 14px;border-radius:20px;
-  background:var(--gold-dim);border:1px solid var(--gold-border);
-  font-size:12px;font-weight:500;color:var(--gold);
-}
-.pools-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:760px;margin-bottom:1.5rem}
-.pool-row-card{
-  background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--r);padding:1.25rem;
-  transition:border-color .2s;
-}
-.pool-row-card:hover{border-color:var(--line2)}
-.prc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
-.prc-name{font-size:14px;font-weight:600}
-.prc-meta{font-size:12px;color:var(--muted);margin-top:2px}
-.prc-stat-label{font-size:11px;color:var(--muted);margin-bottom:4px;letter-spacing:.04em;text-transform:uppercase}
-.prc-stat-val{font-size:15px;font-weight:600}
-.prc-stat-val.gold{color:var(--gold)}
-.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:760px;margin-bottom:1.5rem}
-.an-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:1.25rem}
-.an-label{font-size:11px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px}
-.an-val{font-size:22px;font-weight:600;letter-spacing:-.02em}
-.an-val.gold{color:var(--gold)}
-.an-val.gr{color:var(--green)}
-.an-sub{font-size:12px;color:var(--muted);margin-top:4px}
-.chart-placeholder{
-  width:100%;max-width:760px;
-  background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--r);padding:1.5rem;margin-bottom:1.5rem;
-}
-.cp-label{font-size:13px;font-weight:500;margin-bottom:1rem}
-.cp-bars{display:flex;align-items:flex-end;gap:6px;height:80px}
-.cp-bar{flex:1;border-radius:4px 4px 0 0;background:var(--gold-dim);border:1px solid var(--gold-border);transition:background .2s}
-.cp-bar:hover{background:rgba(245,166,35,0.25)}
+/* sections */
+section{position:relative;z-index:1}
 
-.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);flex-shrink:0}
-.live-dot.off{background:var(--muted);box-shadow:none}
+/* hero */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8rem 1.5rem 4rem}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:20px;background:var(--gold-dim);border:1px solid var(--gold-border);font-size:12px;font-weight:500;color:var(--gold);letter-spacing:.05em;margin-bottom:2rem;animation:up .6s .1s both}
+.hero-badge-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);animation:pulse 2s infinite}
+.hero-title{font-size:clamp(40px,7vw,80px);font-weight:600;letter-spacing:-.04em;line-height:1.05;margin-bottom:1.5rem;animation:up .6s .2s both}
+.hero-title span{background:linear-gradient(90deg,#F5A623,#FBBF24,#F59E0B);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:clamp(15px,2vw,18px);color:var(--muted2);max-width:480px;line-height:1.7;margin:0 auto 2.5rem;font-weight:400;animation:up .6s .3s both}
+.hero-btns{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;animation:up .6s .4s both}
+.btn-primary{display:flex;align-items:center;gap:8px;padding:14px 28px;border-radius:14px;background:linear-gradient(135deg,#F5A623,#D4820A);color:#fff;font-size:15px;font-weight:600;text-decoration:none;transition:all .2s;letter-spacing:-.01em}
+.btn-primary:hover{filter:brightness(1.08);transform:translateY(-2px);box-shadow:0 10px 32px rgba(245,166,35,0.35)}
+.btn-primary svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.btn-secondary{display:flex;align-items:center;gap:8px;padding:14px 28px;border-radius:14px;background:var(--s2);border:1px solid var(--line2);color:var(--text);font-size:15px;font-weight:500;text-decoration:none;transition:all .2s}
+.btn-secondary:hover{border-color:var(--gold-border);background:var(--s3)}
+.hero-stats{display:flex;align-items:center;justify-content:center;gap:2px;margin-top:4rem;animation:up .6s .5s both}
+.hs{padding:1.25rem 2rem;text-align:center;border:1px solid var(--line);background:var(--s1)}
+.hs:first-child{border-radius:14px 0 0 14px}
+.hs:last-child{border-radius:0 14px 14px 0}
+.hs-val{font-size:24px;font-weight:600;letter-spacing:-.02em;color:var(--text)}
+.hs-val.gold{color:var(--gold)}
+.hs-label{font-size:11px;color:var(--muted);margin-top:4px;letter-spacing:.04em;text-transform:uppercase}
+.scroll-hint{position:absolute;bottom:2.5rem;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;animation:fadeIn 1s 1.2s both}
+.scroll-hint span{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.scroll-arrow{width:20px;height:20px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);animation:bounce 1.5s infinite}
+@keyframes bounce{0%,100%{transform:rotate(45deg) translateY(0)}50%{transform:rotate(45deg) translateY(4px)}}
 
-/* main */
-main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1rem 6rem}
+/* how it works */
+.how{padding:6rem 1.5rem;max-width:900px;margin:0 auto}
+.section-label{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;background:var(--gold-dim);border:1px solid var(--gold-border);font-size:11px;font-weight:500;color:var(--gold);letter-spacing:.08em;text-transform:uppercase;margin-bottom:1.25rem}
+.section-title{font-size:clamp(26px,4vw,40px);font-weight:600;letter-spacing:-.03em;line-height:1.15;margin-bottom:1rem}
+.section-title span{background:linear-gradient(90deg,#F5A623,#FBBF24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.section-sub{font-size:15px;color:var(--muted2);line-height:1.7;max-width:500px;margin-bottom:3rem}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.step{background:var(--s1);border:1px solid var(--line);border-radius:20px;padding:1.75rem;position:relative;overflow:hidden;transition:border-color .2s}
+.step:hover{border-color:var(--gold-border)}
+.step::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0;transition:opacity .2s}
+.step:hover::before{opacity:1}
+.step-num{font-size:11px;font-weight:600;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem}
+.step-icon{width:44px;height:44px;border-radius:12px;background:var(--gold-dim);border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;margin-bottom:1.25rem}
+.step-icon svg{width:22px;height:22px;fill:none;stroke:var(--gold);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.step-title{font-size:16px;font-weight:600;letter-spacing:-.01em;margin-bottom:8px}
+.step-desc{font-size:13px;color:var(--muted2);line-height:1.65}
 
-/* page title */
-.page-head{text-align:center;margin-bottom:3rem;animation:up .5s .05s both}
-.page-eyebrow{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:5px 12px;border-radius:20px;
-  background:var(--gold-dim);border:1px solid var(--gold-border);
-  font-size:11px;font-weight:500;color:var(--gold);
-  letter-spacing:.06em;text-transform:uppercase;margin-bottom:16px;
-}
-.page-eyebrow svg{width:10px;height:10px;fill:var(--gold)}
-.page-title{font-size:clamp(28px,4vw,42px);font-weight:600;letter-spacing:-.03em;line-height:1.1;margin-bottom:10px}
-.page-title span{background:linear-gradient(90deg,#F5A623,#FBBF24,#F59E0B);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.page-sub{font-size:14px;color:var(--muted2);font-weight:400;max-width:360px;margin:0 auto;line-height:1.6}
+/* features */
+.features{padding:4rem 1.5rem 6rem;max-width:900px;margin:0 auto}
+.feat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.feat{background:var(--s1);border:1px solid var(--line);border-radius:16px;padding:1.5rem;display:flex;gap:1rem;transition:border-color .2s}
+.feat:hover{border-color:var(--line2)}
+.feat-icon{width:38px;height:38px;border-radius:10px;background:var(--gold-dim);border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.feat-icon svg{width:18px;height:18px;fill:none;stroke:var(--gold);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.feat-title{font-size:14px;font-weight:600;margin-bottom:5px}
+.feat-desc{font-size:13px;color:var(--muted2);line-height:1.6}
 
-/* stats row */
-.stats-row{
-  display:grid;grid-template-columns:repeat(4,1fr);
-  gap:1px;background:var(--line);
-  border:1px solid var(--line);border-radius:var(--r2);
-  overflow:hidden;width:100%;max-width:760px;
-  margin-bottom:2rem;animation:up .5s .1s both;
-}
-.stat-cell{background:var(--surface);padding:1.25rem 1.5rem}
-.sc-label{font-size:11px;color:var(--muted);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px}
-.sc-value{font-size:20px;font-weight:600;letter-spacing:-.02em;color:var(--text)}
-.sc-value.amber{color:var(--gold)}
-.sc-value.gr{color:var(--green)}
-.sc-note{font-size:11px;color:var(--muted);margin-top:4px}
+/* built on */
+.built-on{padding:4rem 1.5rem 6rem;max-width:900px;margin:0 auto;text-align:center}
+.chain-row{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:2.5rem}
+.chain-card{display:flex;flex-direction:column;align-items:center;gap:10px;padding:1.5rem 2rem;background:var(--s1);border:1px solid var(--line);border-radius:16px;min-width:140px;transition:border-color .2s}
+.chain-card:hover{border-color:var(--line2)}
+.chain-logo{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px}
+.chain-name{font-size:13px;font-weight:600}
+.chain-sub{font-size:11px;color:var(--muted);text-align:center;line-height:1.5}
+.chain-arrow{font-size:20px;color:var(--muted)}
 
-/* two-col layout */
-.cols{display:grid;grid-template-columns:1fr 380px;gap:16px;width:100%;max-width:760px;align-items:start}
+/* CTA */
+.cta-section{padding:4rem 1.5rem 8rem;display:flex;flex-direction:column;align-items:center;text-align:center}
+.cta-card{
+  max-width:600px;width:100%;
+  background:linear-gradient(135deg,rgba(245,166,35,0.08),rgba(245,166,35,0.02));
+  border:1px solid var(--gold-border);border-radius:24px;
+  padding:3.5rem 2.5rem;position:relative;overflow:hidden;
+}
+.cta-card::before{content:'';position:absolute;top:-80px;right:-80px;width:240px;height:240px;background:radial-gradient(circle,rgba(245,166,35,0.1),transparent 70%);pointer-events:none}
+.cta-card::after{content:'';position:absolute;bottom:-60px;left:-60px;width:200px;height:200px;background:radial-gradient(circle,rgba(245,166,35,0.06),transparent 70%);pointer-events:none}
+.cta-title{font-size:clamp(24px,4vw,36px);font-weight:600;letter-spacing:-.03em;margin-bottom:1rem}
+.cta-title span{color:var(--gold)}
+.cta-sub{font-size:15px;color:var(--muted2);line-height:1.7;margin-bottom:2rem;max-width:400px;margin-left:auto;margin-right:auto}
+.cta-btns{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:1.5rem}
+.cta-note{font-size:12px;color:var(--muted);letter-spacing:.03em}
+.cta-note span{color:var(--green)}
 
-/* info panel */
-.info-panel{animation:up .5s .15s both}
-.ip-card{
-  background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--r);overflow:hidden;margin-bottom:12px;
-}
-.ip-head{
-  padding:1.25rem 1.25rem .75rem;
-  display:flex;align-items:center;gap:12px;
-  border-bottom:1px solid var(--line);
-}
-.token-pair{
-  width:40px;height:40px;border-radius:12px;
-  background:linear-gradient(135deg,var(--gold-dim),rgba(245,166,35,0.05));
-  border:1px solid var(--gold-border);
-  display:flex;align-items:center;justify-content:center;
-  font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.04em;
-}
-.ip-title{font-size:15px;font-weight:600;letter-spacing:-.01em}
-.ip-sub{font-size:12px;color:var(--muted);margin-top:2px}
-.active-chip{
-  margin-left:auto;padding:3px 10px;border-radius:6px;
-  background:var(--green-dim);font-size:11px;font-weight:500;color:var(--green);
-}
-.ip-rows{}
-.ip-row{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:.75rem 1.25rem;border-bottom:1px solid var(--line);
-}
-.ip-row:last-child{border-bottom:none}
-.ir-label{font-size:13px;color:var(--muted)}
-.ir-val{font-size:13px;font-weight:500;color:var(--text)}
-.ir-val.gold{color:var(--gold)}
+/* footer */
+footer{border-top:1px solid var(--line);padding:2rem 2rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;position:relative;z-index:1}
+.footer-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+.footer-links{display:flex;align-items:center;gap:1.5rem}
+.footer-link{font-size:13px;color:var(--muted);text-decoration:none;transition:color .15s}
+.footer-link:hover{color:var(--text)}
+.footer-copy{font-size:12px;color:var(--muted)}
 
-/* rewards card */
-.rw-card{
-  background:linear-gradient(135deg,rgba(245,166,35,0.06),rgba(245,166,35,0.02));
-  border:1px solid var(--gold-border);
-  border-radius:var(--r);padding:1.25rem;
-  position:relative;overflow:hidden;
-}
-.rw-card::before{
-  content:'';position:absolute;top:-40px;right:-40px;
-  width:120px;height:120px;border-radius:50%;
-  background:radial-gradient(circle,rgba(245,166,35,0.12),transparent 70%);
-}
-.rw-label{font-size:11px;color:var(--gold);letter-spacing:.06em;text-transform:uppercase;font-weight:500;margin-bottom:10px}
-.rw-amount{font-size:30px;font-weight:600;letter-spacing:-.03em;color:var(--text);margin-bottom:4px}
-.rw-amount span{font-size:14px;font-weight:400;color:var(--muted);margin-left:4px}
-.rw-sub{font-size:12px;color:var(--muted);margin-bottom:16px}
-.btn-claim{
-  width:100%;padding:12px;border-radius:var(--r3);
-  background:linear-gradient(135deg,#F5A623,#D4820A);
-  border:none;color:#fff;font-size:13px;font-weight:600;
-  cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;
-  letter-spacing:-.01em;
-}
-.btn-claim:hover:not(:disabled){filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 8px 24px rgba(245,166,35,0.3)}
-.btn-claim:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+/* animations */
+@keyframes up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
-/* action panel */
-.action-panel{animation:up .5s .2s both}
-.ap-card{
-  background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--r);overflow:hidden;
-}
-.ap-tabs{display:flex;border-bottom:1px solid var(--line);padding:6px 6px 0}
-.ap-tab{
-  flex:1;padding:10px 8px;font-size:13px;font-weight:500;
-  border:none;background:transparent;color:var(--muted);
-  cursor:pointer;border-radius:10px 10px 0 0;
-  transition:all .15s;font-family:'Inter',sans-serif;
-  position:relative;
-}
-.ap-tab::after{
-  content:'';position:absolute;bottom:0;left:20%;right:20%;
-  height:2px;border-radius:2px 2px 0 0;
-  background:var(--gold);opacity:0;transition:opacity .15s;
-}
-.ap-tab:hover{color:var(--text)}
-.ap-tab.on{color:var(--text)}
-.ap-tab.on::after{opacity:1}
-
-.ap-body{padding:1.25rem}
-.ap-section-label{font-size:11px;color:var(--muted);font-weight:500;letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px}
-
-/* input box */
-.input-box{
-  background:var(--surface2);border:1px solid var(--line2);
-  border-radius:var(--r2);padding:1rem;margin-bottom:10px;
-  transition:border-color .2s;
-}
-.input-box:focus-within{border-color:var(--gold-border)}
-.ib-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.ib-label{font-size:12px;color:var(--muted)}
-.ib-max{
-  font-size:11px;font-weight:600;color:var(--gold);
-  cursor:pointer;padding:2px 8px;border-radius:5px;
-  background:var(--gold-dim);transition:background .15s;
-}
-.ib-max:hover{background:rgba(245,166,35,0.2)}
-.ib-row{display:flex;align-items:center;gap:8px}
-.ib-input{
-  flex:1;background:transparent;border:none;outline:none;
-  font-size:22px;font-weight:600;color:var(--text);
-  font-family:'Inter',sans-serif;letter-spacing:-.02em;
-  min-width:0;
-}
-.ib-input::placeholder{color:var(--surface3)}
-.ib-token{
-  display:flex;align-items:center;gap:6px;
-  padding:5px 10px;border-radius:8px;
-  background:var(--surface3);
-  font-size:13px;font-weight:600;color:var(--text);flex-shrink:0;
-}
-.ib-token-dot{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#F5A623,#D4820A);flex-shrink:0}
-.ib-hint{font-size:12px;color:var(--muted);margin-top:5px}
-
-/* approve row */
-.approve-row{
-  display:flex;align-items:center;gap:8px;
-  padding:.75rem 1rem;border-radius:var(--r3);
-  background:var(--surface2);border:1px solid var(--line);
-  margin-bottom:10px;font-size:12px;color:var(--muted);
-}
-.approve-row svg{width:14px;height:14px;flex-shrink:0;opacity:.5}
-.approve-btn-inline{
-  margin-left:auto;padding:5px 12px;border-radius:6px;
-  background:var(--gold-dim);border:1px solid var(--gold-border);
-  color:var(--gold);font-size:11px;font-weight:600;
-  cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;
-}
-.approve-btn-inline:hover:not(:disabled){background:rgba(245,166,35,0.2)}
-.approve-btn-inline:disabled{opacity:.4;cursor:not-allowed}
-
-/* main action btn */
-.action-btn{
-  width:100%;padding:15px;border-radius:var(--r2);
-  font-size:14px;font-weight:600;cursor:pointer;
-  border:none;transition:all .2s;font-family:'Inter',sans-serif;
-  letter-spacing:-.01em;
-}
-.action-btn.stake{background:linear-gradient(135deg,#F5A623,#D4820A);color:#fff}
-.action-btn.stake:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 8px 28px rgba(245,166,35,0.28)}
-.action-btn.unstake{background:var(--surface3);color:var(--text);border:1px solid var(--line2)}
-.action-btn.unstake:hover:not(:disabled){border-color:var(--line2);background:var(--surface2)}
-.action-btn:disabled{opacity:.35;cursor:not-allowed;transform:none!important;box-shadow:none!important}
-.action-btn:active:not(:disabled){transform:translateY(0)!important}
-
-/* bottom links */
-.bottom-links{
-  display:flex;align-items:center;justify-content:center;gap:6px;
-  margin-top:2.5rem;flex-wrap:wrap;animation:up .5s .3s both;
-}
-.bl-link{
-  display:flex;align-items:center;gap:5px;
-  padding:7px 14px;border-radius:9px;
-  background:var(--surface);border:1px solid var(--line);
-  font-size:12px;color:var(--muted);text-decoration:none;
-  transition:all .15s;
-}
-.bl-link:hover{color:var(--text);border-color:var(--line2)}
-.bl-link svg{width:13px;height:13px;opacity:.5}
-
-/* toast */
-.toast-wrap{
-  position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);
-  z-index:999;pointer-events:none;
-  display:flex;flex-direction:column;align-items:center;gap:8px;
-}
-.toast{
-  padding:10px 18px;border-radius:12px;
-  background:var(--surface3);border:1px solid var(--line2);
-  font-size:13px;color:var(--text);font-weight:500;
-  opacity:0;transform:translateY(8px);transition:all .25s;
-  box-shadow:0 8px 32px rgba(0,0,0,0.5);white-space:nowrap;
-  pointer-events:auto;
-}
-.toast.show{opacity:1;transform:none}
-.toast.err{border-color:rgba(239,68,68,0.3);color:#FCA5A5}
-.toast.ok{border-color:var(--gold-border);color:var(--gold)}
-
-/* spinner */
-.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,0.15);border-top-color:currentColor;border-radius:50%;animation:rot .6s linear infinite;vertical-align:middle;margin-right:6px}
-@keyframes rot{to{transform:rotate(360deg)}}
-@keyframes up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}
+.reveal.visible{opacity:1;transform:none}
 
 /* responsive */
 @media(max-width:680px){
-  .cols{grid-template-columns:1fr}
-  .stats-row{grid-template-columns:1fr 1fr}
+  .steps{grid-template-columns:1fr}
+  .feat-grid{grid-template-columns:1fr}
+  .hero-stats{flex-direction:column;gap:0}
+  .hs{border-radius:0;width:200px}
+  .hs:first-child{border-radius:14px 14px 0 0}
+  .hs:last-child{border-radius:0 0 14px 14px}
   nav{padding:0 1rem}
-  .nav-pills{display:none}
-  main{padding:2rem .75rem 5rem}
+  .nav-links{display:none}
+  footer{flex-direction:column;text-align:center}
+  .footer-links{justify-content:center}
 }
 </style>
 </head>
 <body>
-<div class="wrap">
 
+<div class="glow-top"></div>
+<div class="glow-left"></div>
+
+<!-- NAV -->
 <nav>
-  <div class="nav-logo">
+  <a class="nav-logo" href="#">
     <div class="logo-gem">
       <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
     </div>
     <span class="logo-word">MLT<span>Farm</span></span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="#how">How It Works</a>
+    <a class="nav-link" href="#features">Features</a>
+    <a class="nav-link" href="#built-on">Built On</a>
   </div>
-  <div class="nav-pills">
-    <button class="nav-pill on" id="nav-earn" onclick="showPage('earn')">Earn</button>
-    <button class="nav-pill" id="nav-pools" onclick="showPage('pools')">Pools</button>
-    <button class="nav-pill" id="nav-analytics" onclick="showPage('analytics')">Analytics</button>
-  </div>
-  <div class="wallet-menu" id="wallet-menu">
-    <button class="connect-btn" id="connect-btn" onclick="handleWalletClick()">
-      <div class="live-dot off" id="live-dot"></div>
-      <span id="connect-label">Connect Wallet</span>
-    </button>
-    <div class="wallet-dropdown" id="wallet-dropdown">
-      <div class="wd-address" id="wd-full-addr">—</div>
-      <button class="wd-item" onclick="copyAddress()">
-        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-        Copy Address
-      </button>
-      <a class="wd-item" id="wd-explorer" href="#" target="_blank">
-        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        View on Explorer
-      </a>
-      <button class="wd-item red" onclick="disconnectWallet()">
-        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        Disconnect
-      </button>
-    </div>
-  </div>
+  <a class="nav-cta" href="app.html">
+    Launch App
+    <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+  </a>
 </nav>
 
-<main>
-
-<!-- EARN PAGE -->
-<div class="page active" id="page-earn">
-
-  <div class="page-head">
-    <div class="page-eyebrow">
-      <svg viewBox="0 0 8 8"><circle cx="4" cy="4" r="4"/></svg>
-      LiteForge Testnet · Chain 4441
-    </div>
-    <h1 class="page-title">Stake MLT.<br><span>Earn rewards.</span></h1>
-    <p class="page-sub">Single-asset staking with no impermanent loss. Deposit MLT and earn yield every second.</p>
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">
+    <div class="hero-badge-dot"></div>
+    Live on LiteForge Testnet · Chain 4441
   </div>
-
-  <div class="stats-row">
-    <div class="stat-cell">
-      <div class="sc-label">APY</div>
-      <div class="sc-value amber" id="sc-apy">—</div>
-      <div class="sc-note">Pool 0 · Live rate</div>
-    </div>
-    <div class="stat-cell">
-      <div class="sc-label">Your Stake</div>
-      <div class="sc-value" id="sc-stake">—</div>
-      <div class="sc-note">MLT deposited</div>
-    </div>
-    <div class="stat-cell">
-      <div class="sc-label">Total Staked</div>
-      <div class="sc-value" id="sc-tvl">—</div>
-      <div class="sc-note">Pool 0</div>
-    </div>
-    <div class="stat-cell">
-      <div class="sc-label">Rewards</div>
-      <div class="sc-value gr" id="sc-rw">—</div>
-      <div class="sc-note" id="sc-rw-note">Connect wallet</div>
-    </div>
-  </div>
-
-  <div class="cols">
-
-    <!-- LEFT: info + rewards -->
-    <div class="info-panel">
-      <div class="ip-card">
-        <div class="ip-head">
-          <div class="token-pair">MLT</div>
-          <div>
-            <div class="ip-title">MLT Single Stake</div>
-            <div class="ip-sub">Pool 0 · Earn MLT</div>
-          </div>
-          <div class="active-chip">● Active</div>
-        </div>
-        <div class="ip-rows">
-          <div class="ip-row">
-            <span class="ir-label">Reward token</span>
-            <span class="ir-val">MLT</span>
-          </div>
-          <div class="ip-row">
-            <span class="ir-label">Reward rate</span>
-            <span class="ir-val">0.001 MLT / sec</span>
-          </div>
-          <div class="ip-row">
-            <span class="ir-label">Reward pool</span>
-            <span class="ir-val">400,000 MLT</span>
-          </div>
-          <div class="ip-row">
-            <span class="ir-label">Lock-up period</span>
-            <span class="ir-val">None</span>
-          </div>
-          <div class="ip-row">
-            <span class="ir-label">Network</span>
-            <span class="ir-val">LiteForge (LitVM)</span>
-          </div>
-          <div class="ip-row">
-            <span class="ir-label">Your balance</span>
-            <span class="ir-val gold" id="ip-balance">—</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="rw-card">
-        <div class="rw-label">Claimable Rewards</div>
-        <div class="rw-amount" id="rw-big">0.0000<span>MLT</span></div>
-        <div class="rw-sub" id="rw-sub">Connect your wallet to start earning</div>
-        <button class="btn-claim" id="claim-btn" onclick="handleClaim()" disabled>Claim Rewards</button>
-      </div>
-    </div>
-
-    <!-- RIGHT: action card -->
-    <div class="action-panel">
-      <div class="ap-card">
-        <div class="ap-tabs">
-          <button class="ap-tab on" id="tab-s" onclick="switchTab('stake')">Stake</button>
-          <button class="ap-tab" id="tab-u" onclick="switchTab('unstake')">Unstake</button>
-        </div>
-        <div class="ap-body">
-
-          <!-- STAKE -->
-          <div id="panel-stake">
-            <div class="ap-section-label">Amount</div>
-            <div class="input-box">
-              <div class="ib-top">
-                <span class="ib-label">You stake</span>
-                <span class="ib-max" onclick="setMax('stake')">MAX</span>
-              </div>
-              <div class="ib-row">
-                <input class="ib-input" type="number" id="stake-in" placeholder="0" min="0"/>
-                <div class="ib-token">
-                  <div class="ib-token-dot"></div>
-                  MLT
-                </div>
-              </div>
-              <div class="ib-hint">Balance: <span id="bal-s">—</span> MLT</div>
-            </div>
-
-            <div class="approve-row">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              <span>Approve MLT before staking</span>
-              <button class="approve-btn-inline" id="approve-btn" onclick="handleApprove()" disabled>Approve</button>
-            </div>
-
-            <button class="action-btn stake" id="stake-btn" onclick="handleStake()" disabled>Stake MLT</button>
-          </div>
-
-          <!-- UNSTAKE -->
-          <div id="panel-unstake" style="display:none">
-            <div class="ap-section-label">Amount</div>
-            <div class="input-box">
-              <div class="ib-top">
-                <span class="ib-label">You unstake</span>
-                <span class="ib-max" onclick="setMax('unstake')">MAX</span>
-              </div>
-              <div class="ib-row">
-                <input class="ib-input" type="number" id="unstake-in" placeholder="0" min="0"/>
-                <div class="ib-token">
-                  <div class="ib-token-dot"></div>
-                  MLT
-                </div>
-              </div>
-              <div class="ib-hint">Staked: <span id="bal-u">—</span> MLT</div>
-            </div>
-            <button class="action-btn unstake" id="unstake-btn" onclick="handleUnstake()" disabled>Unstake MLT</button>
-          </div>
-
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-    <div class="bottom-links">
-    <a class="bl-link" href="https://liteforge.explorer.caldera.xyz/address/0x63c63f7F63376c9fB1A481aBC22463AF98700d70" target="_blank">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-      Farm Contract
+  <h1 class="hero-title">Stake MLT.<br><span>Earn every second.</span></h1>
+  <p class="hero-sub">The first yield farming protocol on LitVM — Litecoin's EVM-compatible ZK rollup. No lock-up. Real-time rewards. Fully on-chain.</p>
+  <div class="hero-btns">
+    <a class="btn-primary" href="app.html">
+      Launch App
+      <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
     </a>
-    <a class="bl-link" href="https://liteforge.explorer.caldera.xyz/address/0x494c41cdf4bd62a7a0e379f7356c4564E399f844" target="_blank">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-      MLT Token
-    </a>
-    <a class="bl-link" href="https://liteforge.hub.caldera.xyz" target="_blank">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-      Get zkLTC
-    </a>
-    <a class="bl-link" href="https://docs.litvm.com" target="_blank">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-      LitVM Docs
+    <a class="btn-secondary" href="https://liteforge.explorer.caldera.xyz/address/0x63c63f7F63376c9fB1A481aBC22463AF98700d70" target="_blank">
+      View Contract ↗
     </a>
   </div>
-
-</div><!-- end page-earn -->
-
-<!-- POOLS PAGE -->
-<div class="page" id="page-pools">
-  <div class="page-head">
-    <div class="page-eyebrow">
-      <svg viewBox="0 0 8 8"><circle cx="4" cy="4" r="4"/></svg>
-      All Pools · LiteForge Testnet
+  <div class="hero-stats">
+    <div class="hs">
+      <div class="hs-val gold">Live</div>
+      <div class="hs-label">Status</div>
     </div>
-    <h1 class="page-title">Staking <span>Pools</span></h1>
-    <p class="page-sub">All available staking pools on MLT Farm. Deposit tokens and earn rewards every second.</p>
+    <div class="hs">
+      <div class="hs-val">400K</div>
+      <div class="hs-label">MLT Rewards</div>
+    </div>
+    <div class="hs">
+      <div class="hs-val">0%</div>
+      <div class="hs-label">Lock-up</div>
+    </div>
+    <div class="hs">
+      <div class="hs-val gold">~0.4s</div>
+      <div class="hs-label">Block Time</div>
+    </div>
   </div>
+  <div class="scroll-hint">
+    <span>Scroll</span>
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
 
-  <div class="pools-grid">
-    <div class="pool-row-card">
-      <div class="prc-top">
-        <div>
-          <div class="prc-name">MLT Single Stake</div>
-          <div class="prc-meta">Pool 0 · Earn MLT</div>
-        </div>
-        <div class="active-chip" style="font-size:11px;padding:3px 10px">● Active</div>
+<!-- HOW IT WORKS -->
+<section class="how reveal" id="how">
+  <div class="section-label">How It Works</div>
+  <h2 class="section-title">DeFi in <span>3 steps</span></h2>
+  <p class="section-sub">Start earning MLT rewards in minutes. No complicated setup, no lock-up periods.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">Step 01</div>
+      <div class="step-icon">
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div>
-          <div class="prc-stat-label">APY</div>
-          <div class="prc-stat-val gold" id="p-apy">—</div>
-        </div>
-        <div>
-          <div class="prc-stat-label">TVL</div>
-          <div class="prc-stat-val" id="p-tvl">—</div>
-        </div>
-        <div>
-          <div class="prc-stat-label">Reward Token</div>
-          <div class="prc-stat-val">MLT</div>
-        </div>
-        <div>
-          <div class="prc-stat-label">Lock-up</div>
-          <div class="prc-stat-val">None</div>
-        </div>
+      <div class="step-title">Connect Wallet</div>
+      <div class="step-desc">Connect your Rabby or MetaMask wallet. The app auto-switches to LiteForge Testnet (Chain 4441).</div>
+    </div>
+    <div class="step">
+      <div class="step-num">Step 02</div>
+      <div class="step-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
       </div>
-      <button class="action-btn stake" style="margin-top:1rem;padding:11px" onclick="showPage('earn')">Stake Now →</button>
+      <div class="step-title">Stake MLT</div>
+      <div class="step-desc">Approve and deposit your MLT tokens into the farm. Your stake is always in your control — withdraw anytime.</div>
     </div>
-
-    <div class="pool-row-card" style="opacity:.5">
-      <div class="prc-top">
-        <div>
-          <div class="prc-name">Pool 1</div>
-          <div class="prc-meta">Coming soon</div>
-        </div>
-        <div style="padding:3px 10px;border-radius:6px;background:var(--surface3);font-size:11px;color:var(--muted)">Soon</div>
+    <div class="step">
+      <div class="step-num">Step 03</div>
+      <div class="step-icon">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div><div class="prc-stat-label">APY</div><div class="prc-stat-val">—</div></div>
-        <div><div class="prc-stat-label">TVL</div><div class="prc-stat-val">—</div></div>
-        <div><div class="prc-stat-label">Reward Token</div><div class="prc-stat-val">TBA</div></div>
-        <div><div class="prc-stat-label">Lock-up</div><div class="prc-stat-val">TBA</div></div>
+      <div class="step-title">Earn Rewards</div>
+      <div class="step-desc">MLT rewards accrue every second based on your share of the pool. Claim anytime with one click.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features reveal" id="features">
+  <div class="section-label">Features</div>
+  <h2 class="section-title">Built for <span>real DeFi</span></h2>
+  <p class="section-sub">Everything you expect from a production-grade yield farm — on the fastest Litecoin L2.</p>
+  <div class="feat-grid">
+    <div class="feat">
+      <div class="feat-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <div>
+        <div class="feat-title">No Impermanent Loss</div>
+        <div class="feat-desc">Single-asset staking means your deposit value is never diluted by price divergence between pairs.</div>
       </div>
-      <button class="action-btn unstake" style="margin-top:1rem;padding:11px" disabled>Coming Soon</button>
+    </div>
+    <div class="feat">
+      <div class="feat-icon"><svg viewBox="0 0 24 24"><polyline points="13 2 13 9 20 9"/><path d="M20 14.5V20a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2h7l7 7z"/></svg></div>
+      <div>
+        <div class="feat-title">Fully On-Chain</div>
+        <div class="feat-desc">All logic lives in auditable smart contracts on LiteForge. No admin keys, no off-chain dependencies.</div>
+      </div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+      <div>
+        <div class="feat-title">Real-Time Rewards</div>
+        <div class="feat-desc">Rewards accrue every second based on your pool share. No epoch delays, no waiting periods.</div>
+      </div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+      <div>
+        <div class="feat-title">Live APY</div>
+        <div class="feat-desc">APY is calculated on-chain in real time. What you see is always the current rate — never a marketing estimate.</div>
+      </div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+      <div>
+        <div class="feat-title">Withdraw Anytime</div>
+        <div class="feat-desc">Zero lock-up periods. Unstake your full position or a partial amount at any time with no penalty.</div>
+      </div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+      <div>
+        <div class="feat-title">Multi-Pool Ready</div>
+        <div class="feat-desc">The farm contract supports multiple independent pools. New tokens and reward structures can be added by the owner.</div>
+      </div>
     </div>
   </div>
-</div><!-- end page-pools -->
+</section>
 
-<!-- ANALYTICS PAGE -->
-<div class="page" id="page-analytics">
-  <div class="page-head">
-    <div class="page-eyebrow">
-      <svg viewBox="0 0 8 8"><circle cx="4" cy="4" r="4"/></svg>
-      Protocol Analytics · LiteForge Testnet
+<!-- BUILT ON -->
+<section class="built-on reveal" id="built-on">
+  <div class="section-label">Powered By</div>
+  <h2 class="section-title">Built on <span>LitVM</span></h2>
+  <p style="font-size:15px;color:var(--muted2);line-height:1.7;max-width:500px;margin:0 auto">LitVM is the first trustless EVM-compatible rollup secured by Litecoin — combining Arbitrum's speed with Bitcoin-grade security.</p>
+  <div class="chain-row">
+    <div class="chain-card">
+      <div class="chain-logo" style="background:rgba(180,180,180,0.1);font-size:22px">🪙</div>
+      <div class="chain-name">Litecoin</div>
+      <div class="chain-sub">Settlement<br>& Security</div>
     </div>
-    <h1 class="page-title">Farm <span>Analytics</span></h1>
-    <p class="page-sub">Real-time protocol stats for MLT Farm on LitVM LiteForge testnet.</p>
-  </div>
-
-  <div class="analytics-grid">
-    <div class="an-card">
-      <div class="an-label">Total Value Staked</div>
-      <div class="an-val gold" id="an-tvl">—</div>
-      <div class="an-sub">Pool 0 · MLT</div>
+    <div class="chain-arrow">→</div>
+    <div class="chain-card">
+      <div class="chain-logo" style="background:rgba(30,120,255,0.1);font-size:22px">⚡</div>
+      <div class="chain-name">Arbitrum Orbit</div>
+      <div class="chain-sub">EVM<br>Compatibility</div>
     </div>
-    <div class="an-card">
-      <div class="an-label">Current APY</div>
-      <div class="an-val gr" id="an-apy">—</div>
-      <div class="an-sub">Live rate</div>
-    </div>
-    <div class="an-card">
-      <div class="an-label">Reward Pool</div>
-      <div class="an-val">400,000</div>
-      <div class="an-sub">MLT available</div>
-    </div>
-    <div class="an-card">
-      <div class="an-label">Reward Rate</div>
-      <div class="an-val">0.001</div>
-      <div class="an-sub">MLT per second</div>
-    </div>
-    <div class="an-card">
-      <div class="an-label">Your Stake</div>
-      <div class="an-val" id="an-stake">—</div>
-      <div class="an-sub">MLT deposited</div>
-    </div>
-    <div class="an-card">
-      <div class="an-label">Your Rewards</div>
-      <div class="an-val gold" id="an-rw">—</div>
-      <div class="an-sub">Claimable MLT</div>
+    <div class="chain-arrow">→</div>
+    <div class="chain-card">
+      <div class="chain-logo" style="background:rgba(245,166,35,0.1);font-size:22px">🌾</div>
+      <div class="chain-name">MLT Farm</div>
+      <div class="chain-sub">Yield Farming<br>Protocol</div>
     </div>
   </div>
+</section>
 
-  <div class="chart-placeholder">
-    <div class="cp-label">Staking Activity — Pool 0</div>
-    <div class="cp-bars" id="cp-bars"></div>
-    <div style="display:flex;justify-content:space-between;margin-top:8px">
-      <span style="font-size:11px;color:var(--muted)">Mon</span>
-      <span style="font-size:11px;color:var(--muted)">Tue</span>
-      <span style="font-size:11px;color:var(--muted)">Wed</span>
-      <span style="font-size:11px;color:var(--muted)">Thu</span>
-      <span style="font-size:11px;color:var(--muted)">Fri</span>
-      <span style="font-size:11px;color:var(--muted)">Sat</span>
-      <span style="font-size:11px;color:var(--muted)">Today</span>
+<!-- CTA -->
+<section class="cta-section reveal">
+  <div class="cta-card">
+    <h2 class="cta-title">Ready to start<br><span>earning?</span></h2>
+    <p class="cta-sub">Connect your wallet, stake MLT, and watch your rewards grow every second — live on LiteForge testnet.</p>
+    <div class="cta-btns">
+      <a class="btn-primary" href="app.html">
+        Launch App
+        <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+      <a class="btn-secondary" href="https://liteforge.hub.caldera.xyz" target="_blank">Get zkLTC →</a>
     </div>
+    <div class="cta-note"><span>●</span> Live on LiteForge Testnet · No real funds required</div>
   </div>
+</section>
 
-  <div style="text-align:center">
-    <a class="bl-link" style="display:inline-flex" href="https://liteforge.explorer.caldera.xyz/address/0x63c63f7F63376c9fB1A481aBC22463AF98700d70" target="_blank">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-      View full history on Explorer
-    </a>
+<!-- FOOTER -->
+<footer>
+  <a class="footer-logo" href="#">
+    <div class="logo-gem" style="width:26px;height:26px;border-radius:7px">
+      <svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    </div>
+    <span class="logo-word" style="font-size:13px">MLT<span>Farm</span></span>
+  </a>
+  <div class="footer-links">
+    <a class="footer-link" href="app.html">App</a>
+    <a class="footer-link" href="https://liteforge.explorer.caldera.xyz/address/0x63c63f7F63376c9fB1A481aBC22463AF98700d70" target="_blank">Contract</a>
+    <a class="footer-link" href="https://docs.litvm.com" target="_blank">Docs</a>
+    <a class="footer-link" href="https://t.me/litecoinvm" target="_blank">Telegram</a>
+    <a class="footer-link" href="https://twitter.com/LitecoinVM" target="_blank">Twitter</a>
   </div>
-</div><!-- end page-analytics -->
-
-</main>
-</div>
-
-<!-- toast -->
-<div class="toast-wrap">
-  <div class="toast" id="toast"></div>
-</div>
+  <div class="footer-copy">Built on LitVM · 2026</div>
+</footer>
 
 <script>
-// page routing
-function showPage(page){
-  ['earn','pools','analytics'].forEach(p=>{
-    document.getElementById('page-'+p).classList.toggle('active',p===page);
-    document.getElementById('nav-'+p).classList.toggle('on',p===page);
-  });
-  if(page==='analytics') populateAnalytics();
-  if(page==='pools') populatePools();
-}
-
-// chart bars
-const barHeights=[35,50,42,70,55,80,100];
-const barsEl=document.getElementById('cp-bars');
-barHeights.forEach(h=>{
-  const b=document.createElement('div');
-  b.className='cp-bar';b.style.height=h+'%';barsEl.appendChild(b);
-});
-
-// wallet dropdown
-function handleWalletClick(){
-  if(!addr){connectWallet();return}
-  document.getElementById('wallet-dropdown').classList.toggle('open');
-}
-document.addEventListener('click',e=>{
-  if(!document.getElementById('wallet-menu').contains(e.target)){
-    document.getElementById('wallet-dropdown').classList.remove('open');
-  }
-});
-function copyAddress(){
-  if(!addr)return;
-  navigator.clipboard.writeText(addr);
-  toast('Address copied ✓','ok');
-  document.getElementById('wallet-dropdown').classList.remove('open');
-}
-function disconnectWallet(){
-  addr=null;signer=null;provider=null;mlt=null;farm=null;
-  clearInterval(pollTimer);
-  document.getElementById('connect-btn').className='connect-btn';
-  document.getElementById('connect-label').textContent='Connect Wallet';
-  document.getElementById('live-dot').classList.add('off');
-  document.getElementById('wallet-dropdown').classList.remove('open');
-  ['sc-apy','sc-stake','sc-tvl','sc-rw','ip-balance','rw-big'].forEach(id=>{
-    const el=document.getElementById(id);if(el)el.textContent='—';
-  });
-  document.getElementById('sc-rw-note').textContent='Connect wallet';
-  document.getElementById('rw-big').innerHTML='0.0000<span>MLT</span>';
-  ['approve-btn','stake-btn','unstake-btn','claim-btn'].forEach(id=>{
-    const b=document.getElementById(id);if(b)b.disabled=true;
-  });
-  toast('Wallet disconnected');
-}
-
-function populateAnalytics(){
-  if(!addr)return;
-  Promise.all([
-    farm.getAPY(0),farm.pools(0),farm.userInfo(0,addr),farm.pendingRewards(0,addr)
-  ]).then(([apy,pool,ui,rw])=>{
-    document.getElementById('an-apy').textContent=(Number(apy)/100).toFixed(1)+'%';
-    document.getElementById('an-tvl').textContent=fmtK(pool[2])+' MLT';
-    document.getElementById('an-stake').textContent=fmt(ui[0],2)+' MLT';
-    document.getElementById('an-rw').textContent=fmt(rw)+' MLT';
-  }).catch(()=>{});
-}
-function populatePools(){
-  if(!addr)return;
-  Promise.all([farm.getAPY(0),farm.pools(0)]).then(([apy,pool])=>{
-    document.getElementById('p-apy').textContent=(Number(apy)/100).toFixed(1)+'%';
-    document.getElementById('p-tvl').textContent=fmtK(pool[2])+' MLT';
-  }).catch(()=>{});
-}
-
-const MLT_ADDR  = "0x494c41cdf4bd62a7a0e379f7356c4564E399f844";
-const FARM_ADDR = "0x63c63f7F63376c9fB1A481aBC22463AF98700d70";
-const CHAIN_ID  = 4441;
-const ERC20_ABI = [
-  "function balanceOf(address) view returns (uint256)",
-  "function allowance(address,address) view returns (uint256)",
-  "function approve(address,uint256) returns (bool)"
-];
-const FARM_ABI = [
-  "function stake(uint256,uint256)",
-  "function unstake(uint256,uint256)",
-  "function claimRewards(uint256)",
-  "function pendingRewards(uint256,address) view returns (uint256)",
-  "function userInfo(uint256,address) view returns (uint256,uint256,uint256)",
-  "function pools(uint256) view returns (address,uint256,uint256,bool)",
-  "function getAPY(uint256) view returns (uint256)"
-];
-
-let provider,signer,mlt,farm,addr,pollTimer;
-
-function fmt(wei,d=4){return parseFloat(ethers.formatEther(wei)).toFixed(d)}
-function fmtK(wei){
-  const n=parseFloat(ethers.formatEther(wei));
-  if(n>=1000000)return(n/1000000).toFixed(2)+'M';
-  if(n>=1000)return(n/1000).toFixed(1)+'K';
-  return n.toFixed(2);
-}
-
-let toastTimer;
-function toast(msg,type=''){
-  const t=document.getElementById('toast');
-  t.textContent=msg;t.className='toast show'+(type?' '+type:'');
-  clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>t.className='toast',4000);
-}
-
-function switchTab(tab){
-  document.getElementById('panel-stake').style.display   =tab==='stake'?'block':'none';
-  document.getElementById('panel-unstake').style.display =tab==='unstake'?'block':'none';
-  document.getElementById('tab-s').className='ap-tab'+(tab==='stake'?' on':'');
-  document.getElementById('tab-u').className='ap-tab'+(tab==='unstake'?' on':'');
-}
-
-async function setMax(t){
-  if(!addr)return;
-  if(t==='stake'){
-    const b=await mlt.balanceOf(addr);
-    document.getElementById('stake-in').value=fmt(b,4);
-  } else {
-    const[a]=await farm.userInfo(0,addr);
-    document.getElementById('unstake-in').value=fmt(a,4);
-  }
-}
-
-function setBtn(id,html,dis){
-  const b=document.getElementById(id);
-  if(html!==null)b.innerHTML=html;
-  b.disabled=dis;
-}
-
-async function connectWallet(){
-  if(!window.ethereum){toast('Please install Rabby or MetaMask','err');return}
-  try{
-    provider=new ethers.BrowserProvider(window.ethereum);
-    await provider.send("eth_requestAccounts",[]);
-    const net=await provider.getNetwork();
-    if(Number(net.chainId)!==CHAIN_ID){
-      try{await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x115D'}]})}
-      catch{toast('Switch to LiteForge Testnet (4441)','err');return}
-    }
-    signer=await provider.getSigner();
-    addr=await signer.getAddress();
-    mlt=new ethers.Contract(MLT_ADDR,ERC20_ABI,signer);
-    farm=new ethers.Contract(FARM_ADDR,FARM_ABI,signer);
-    const short=addr.slice(0,6)+'...'+addr.slice(-4);
-    document.getElementById('connect-btn').classList.add('on');
-    document.getElementById('connect-label').textContent=short;
-    document.getElementById('live-dot').classList.remove('off');
-    document.getElementById('wd-full-addr').textContent=addr;
-    document.getElementById('wd-explorer').href='https://liteforge.explorer.caldera.xyz/address/'+addr;
-    ['approve-btn','stake-btn','unstake-btn','claim-btn'].forEach(id=>setBtn(id,null,false));
-    await refresh();
-    clearInterval(pollTimer);
-    pollTimer=setInterval(pollRw,5000);
-    toast('Connected — '+short,'ok');
-  }catch(e){toast(e.message||'Connection failed','err')}
-}
-
-async function refresh(){
-  try{
-    const[bal,ui,pool,apy,rw]=await Promise.all([
-      mlt.balanceOf(addr),
-      farm.userInfo(0,addr),
-      farm.pools(0),
-      farm.getAPY(0),
-      farm.pendingRewards(0,addr)
-    ]);
-    const apyPct=(Number(apy)/100).toFixed(1)+'%';
-    document.getElementById('sc-apy').textContent=apyPct;
-    document.getElementById('sc-stake').textContent=fmt(ui[0],2)+' MLT';
-    document.getElementById('sc-tvl').textContent=fmtK(pool[2])+' MLT';
-    document.getElementById('sc-rw').textContent=fmt(rw)+' MLT';
-    document.getElementById('sc-rw-note').textContent='↑ accruing live';
-    document.getElementById('ip-balance').textContent=fmt(bal,2)+' MLT';
-    document.getElementById('bal-s').textContent=fmt(bal,2);
-    document.getElementById('bal-u').textContent=fmt(ui[0],2);
-    document.getElementById('rw-big').innerHTML=fmt(rw)+'<span>MLT</span>';
-    document.getElementById('rw-sub').textContent='Rewards update every few seconds';
-  }catch(e){console.error(e)}
-}
-
-async function pollRw(){
-  if(!addr)return;
-  try{
-    const rw=await farm.pendingRewards(0,addr);
-    const v=fmt(rw);
-    document.getElementById('sc-rw').textContent=v+' MLT';
-    document.getElementById('rw-big').innerHTML=v+'<span>MLT</span>';
-  }catch{}
-}
-
-async function handleApprove(){
-  const v=document.getElementById('stake-in').value;
-  if(!v||+v<=0){toast('Enter an amount first','err');return}
-  try{
-    setBtn('approve-btn','<span class="spin"></span>Approving…',true);
-    const tx=await mlt.approve(FARM_ADDR,ethers.parseEther(v));
-    toast('Approval pending…');
-    await tx.wait();
-    toast('Approved! You can now stake ✓','ok');
-    setBtn('approve-btn','Approved ✓',false);
-  }catch(e){
-    toast(e.reason||'Approval failed','err');
-    setBtn('approve-btn','Approve',false);
-  }
-}
-
-async function handleStake(){
-  const v=document.getElementById('stake-in').value;
-  if(!v||+v<=0){toast('Enter an amount','err');return}
-  try{
-    setBtn('stake-btn','<span class="spin"></span>Staking…',true);
-    const amt=ethers.parseEther(v);
-    const al=await mlt.allowance(addr,FARM_ADDR);
-    if(al<amt){toast('Approve MLT first','err');setBtn('stake-btn','Stake MLT',false);return}
-    const tx=await farm.stake(0,amt);
-    toast('Transaction sent…');
-    await tx.wait();
-    document.getElementById('stake-in').value='';
-    toast('Staked '+parseFloat(v).toFixed(2)+' MLT ✓','ok');
-    await refresh();
-    setBtn('stake-btn','Stake MLT',false);
-  }catch(e){
-    toast(e.reason||'Stake failed','err');
-    setBtn('stake-btn','Stake MLT',false);
-  }
-}
-
-async function handleUnstake(){
-  const v=document.getElementById('unstake-in').value;
-  if(!v||+v<=0){toast('Enter an amount','err');return}
-  try{
-    setBtn('unstake-btn','<span class="spin"></span>Unstaking…',true);
-    const tx=await farm.unstake(0,ethers.parseEther(v));
-    toast('Transaction sent…');
-    await tx.wait();
-    document.getElementById('unstake-in').value='';
-    toast('Unstaked '+parseFloat(v).toFixed(2)+' MLT ✓','ok');
-    await refresh();
-    setBtn('unstake-btn','Unstake MLT',false);
-  }catch(e){
-    toast(e.reason||'Unstake failed','err');
-    setBtn('unstake-btn','Unstake MLT',false);
-  }
-}
-
-async function handleClaim(){
-  try{
-    setBtn('claim-btn','<span class="spin"></span>Claiming…',true);
-    const tx=await farm.claimRewards(0);
-    toast('Claim submitted…');
-    await tx.wait();
-    toast('Rewards claimed successfully ✓','ok');
-    await refresh();
-    setBtn('claim-btn','Claim Rewards',false);
-  }catch(e){
-    toast(e.reason||'Claim failed','err');
-    setBtn('claim-btn','Claim Rewards',false);
-  }
-}
+// scroll reveal
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target)}});
+},{threshold:0.15});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
 </script>
 </body>
 </html>
