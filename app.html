@@ -925,7 +925,7 @@ async function addNetworkManually(){
     await window.ethereum.request({
       method:'wallet_addEthereumChain',
       params:[{
-        chainId:'0x115D',
+        chainId:'0x1159',
         chainName:'LiteForge Testnet',
         nativeCurrency:{name:'zkLTC',symbol:'zkLTC',decimals:18},
         rpcUrls:['https://liteforge.rpc.caldera.xyz/http'],
@@ -1026,21 +1026,21 @@ async function connectWallet(){
     const net=await provider.getNetwork();
     if(Number(net.chainId)!==CHAIN_ID){
       try{
-        await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x115D'}]});
+        await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x1159'}]});
       } catch(switchErr){
         // chain not added yet (common on mobile) — add it then switch
         try{
           await window.ethereum.request({
             method:'wallet_addEthereumChain',
             params:[{
-              chainId:'0x115D',
+              chainId:'0x1159',
               chainName:'LiteForge Testnet',
               nativeCurrency:{name:'zkLTC',symbol:'zkLTC',decimals:18},
               rpcUrls:['https://liteforge.rpc.caldera.xyz/http'],
               blockExplorerUrls:['https://liteforge.explorer.caldera.xyz']
             }]
           });
-          await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x115D'}]});
+          await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x1159'}]});
         } catch(addErr){
           toast('Could not add LiteForge — add manually: Chain 4441','err');
           return;
