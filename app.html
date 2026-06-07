@@ -237,6 +237,47 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
 .ir-val.gold{color:var(--gold)}
 
 /* rewards card */
+
+/* faucet card */
+.faucet-card{
+  background:linear-gradient(135deg,rgba(34,197,94,0.06),rgba(34,197,94,0.02));
+  border:1px solid rgba(34,197,94,0.2);
+  border-radius:var(--r);padding:1.25rem;
+  margin-bottom:1.25rem;position:relative;overflow:hidden;
+  animation:up .5s .25s both;
+}
+.faucet-card::before{
+  content:'';position:absolute;top:-40px;right:-40px;
+  width:120px;height:120px;border-radius:50%;
+  background:radial-gradient(circle,rgba(34,197,94,0.1),transparent 70%);
+}
+.faucet-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.faucet-title{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.faucet-sub{font-size:12px;color:var(--muted2);margin-top:3px}
+.faucet-badge{
+  padding:4px 10px;border-radius:6px;
+  background:var(--green-dim);border:1px solid rgba(34,197,94,0.2);
+  font-size:11px;font-weight:500;color:var(--green);
+}
+.faucet-info{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.75rem 1rem;background:var(--surface2);
+  border-radius:var(--r-sm);margin-bottom:1rem;
+}
+.fi-label{font-size:12px;color:var(--muted)}
+.fi-val{font-size:13px;font-weight:600;color:var(--text)}
+.btn-faucet{
+  width:100%;padding:13px;border-radius:var(--r2);
+  background:linear-gradient(135deg,var(--green2),var(--green));
+  border:none;color:#fff;font-size:13px;font-weight:600;
+  cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;
+  letter-spacing:-.01em;
+}
+.btn-faucet:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 8px 24px rgba(34,197,94,0.25)}
+.btn-faucet:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+.countdown{font-size:11px;color:var(--muted);text-align:center;margin-top:8px;letter-spacing:.03em}
+.countdown span{color:var(--gold)}
+
 .rw-card{
   background:linear-gradient(135deg,rgba(245,166,35,0.06),rgba(245,166,35,0.02));
   border:1px solid var(--gold-border);
@@ -686,6 +727,27 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
         </div>
       </div>
 
+      <!-- faucet card -->
+      <div class="faucet-card">
+        <div class="faucet-top">
+          <div>
+            <div class="faucet-title">🚰 Get Test MLT</div>
+            <div class="faucet-sub">Claim 1,000 MLT to start staking</div>
+          </div>
+          <div class="faucet-badge">Free</div>
+        </div>
+        <div class="faucet-info">
+          <span class="fi-label">Amount per claim</span>
+          <span class="fi-val" style="color:var(--green)">1,000 MLT</span>
+        </div>
+        <div class="faucet-info" style="margin-bottom:1rem">
+          <span class="fi-label">Your MLT balance</span>
+          <span class="fi-val" id="faucet-bal">—</span>
+        </div>
+        <button class="btn-faucet" id="faucet-btn" onclick="handleFaucet()" disabled>Claim Test MLT</button>
+        <div class="countdown" id="faucet-countdown"></div>
+      </div>
+
       <div class="rw-card">
         <div class="rw-label">Claimable Rewards</div>
         <div class="rw-amount" id="rw-big">0.0000<span>MLT</span></div>
@@ -818,21 +880,21 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
       <button class="action-btn stake" style="margin-top:1rem;padding:11px" onclick="showPage('earn')">Stake Now →</button>
     </div>
 
-    <div class="pool-row-card" style="opacity:.5">
+    <div class="pool-row-card">
       <div class="prc-top">
         <div>
-          <div class="prc-name">Pool 1</div>
-          <div class="prc-meta">Coming soon</div>
+          <div class="prc-name">MLT Faucet Stake</div>
+          <div class="prc-meta">Pool 1 · Earn MLT</div>
         </div>
-        <div style="padding:3px 10px;border-radius:6px;background:var(--surface3);font-size:11px;color:var(--muted)">Soon</div>
+        <div class="active-chip" style="font-size:11px;padding:3px 10px">● Active</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div><div class="prc-stat-label">APY</div><div class="prc-stat-val">—</div></div>
-        <div><div class="prc-stat-label">TVL</div><div class="prc-stat-val">—</div></div>
-        <div><div class="prc-stat-label">Reward Token</div><div class="prc-stat-val">TBA</div></div>
-        <div><div class="prc-stat-label">Lock-up</div><div class="prc-stat-val">TBA</div></div>
+        <div><div class="prc-stat-label">APY</div><div class="prc-stat-val gold" id="p1-apy">—</div></div>
+        <div><div class="prc-stat-label">TVL</div><div class="prc-stat-val" id="p1-tvl">—</div></div>
+        <div><div class="prc-stat-label">Reward Token</div><div class="prc-stat-val">MLT</div></div>
+        <div><div class="prc-stat-label">Lock-up</div><div class="prc-stat-val">None</div></div>
       </div>
-      <button class="action-btn unstake" style="margin-top:1rem;padding:11px" disabled>Coming Soon</button>
+      <button class="action-btn stake" style="margin-top:1rem;padding:11px" onclick="showPage('earn')">Stake Now →</button>
     </div>
   </div>
 </div><!-- end page-pools -->
@@ -1040,9 +1102,16 @@ function populateAnalytics(){
 }
 function populatePools(){
   if(!addr)return;
-  Promise.all([farm.getAPY(0),farm.pools(0)]).then(([apy,pool])=>{
-    document.getElementById('p-apy').textContent=(Number(apy)/100).toFixed(1)+'%';
-    document.getElementById('p-tvl').textContent=fmtK(pool[2])+' MLT';
+  Promise.all([
+    farm.getAPY(0),farm.pools(0),
+    farm.getAPY(1).catch(()=>0),farm.pools(1).catch(()=>null)
+  ]).then(([apy0,pool0,apy1,pool1])=>{
+    document.getElementById('p-apy').textContent=(Number(apy0)/100).toFixed(1)+'%';
+    document.getElementById('p-tvl').textContent=fmtK(pool0[2])+' MLT';
+    if(pool1){
+      document.getElementById('p1-apy').textContent=(Number(apy1)/100).toFixed(1)+'%';
+      document.getElementById('p1-tvl').textContent=fmtK(pool1[2])+' MLT';
+    }
   }).catch(()=>{});
 }
 
@@ -1086,10 +1155,18 @@ if(window.ethereum){
   window.ethereum.on('accountsChanged',()=>location.reload());
 }
 
-const MLT_ADDR  = "0x494c41cdf4bd62a7a0e379f7356c4564E399f844";
+const MLT_ADDR  = "0x705c4D8Deb24F25d92c9e96621df6036134810bD"; // new MLTToken with faucet
+const OLD_MLT   = "0x494c41cdf4bd62a7a0e379f7356c4564E399f844"; // old token (Pool 0)
 const FARM_ADDR = "0x63c63f7F63376c9fB1A481aBC22463AF98700d70";
 const CHAIN_ID  = 4441;
 const ERC20_ABI = [
+  "function balanceOf(address) view returns (uint256)",
+  "function allowance(address,address) view returns (uint256)",
+  "function approve(address,uint256) returns (bool)"
+];
+const FAUCET_ABI = [
+  "function faucet() external",
+  "function timeUntilNextClaim(address) view returns (uint256)",
   "function balanceOf(address) view returns (uint256)",
   "function allowance(address,address) view returns (uint256)",
   "function approve(address,uint256) returns (bool)"
@@ -1101,7 +1178,8 @@ const FARM_ABI = [
   "function pendingRewards(uint256,address) view returns (uint256)",
   "function userInfo(uint256,address) view returns (uint256,uint256,uint256)",
   "function pools(uint256) view returns (address,uint256,uint256,bool)",
-  "function getAPY(uint256) view returns (uint256)"
+  "function getAPY(uint256) view returns (uint256)",
+  "function poolLength() view returns (uint256)"
 ];
 
 let provider,signer,mlt,farm,addr,pollTimer;
@@ -1266,7 +1344,7 @@ async function finishConnect(){
     }
     signer=await provider.getSigner();
     addr=await signer.getAddress();
-    mlt=new ethers.Contract(MLT_ADDR,ERC20_ABI,signer);
+    mlt=new ethers.Contract(MLT_ADDR,FAUCET_ABI,signer);
     farm=new ethers.Contract(FARM_ADDR,FARM_ABI,signer);
     const short=addr.slice(0,6)+'...'+addr.slice(-4);
     document.getElementById('connect-btn').classList.add('on');
@@ -1276,10 +1354,58 @@ async function finishConnect(){
     document.getElementById('wd-explorer').href='https://liteforge.explorer.caldera.xyz/address/'+addr;
     ['approve-btn','stake-btn','unstake-btn','claim-btn'].forEach(id=>setBtn(id,null,false));
     await refresh();
+    await checkFaucetCooldown();
+    document.getElementById('faucet-btn').disabled = false;
     clearInterval(pollTimer);
     pollTimer=setInterval(pollRw,5000);
     toast('Connected — '+short,'ok');
   }catch(e){toast(e.message||'Connection failed','err')}
+}
+
+// ── faucet ──────────────────────────────────────────────────
+async function handleFaucet(){
+  try{
+    setBtn('faucet-btn','<span class="spin"></span>Claiming...',true);
+    const tx = await mlt.faucet();
+    toast('Claim submitted — confirming...');
+    await tx.wait();
+    toast('Claimed 1,000 MLT successfully! ✓','ok');
+    await refresh();
+    await checkFaucetCooldown();
+  } catch(e){
+    const msg = e.reason || e.message || 'Claim failed';
+    if(msg.includes('24 hours')) toast('Already claimed — come back in 24 hours','err');
+    else toast(msg,'err');
+    await checkFaucetCooldown();
+  }
+}
+
+async function checkFaucetCooldown(){
+  if(!addr) return;
+  try{
+    const [bal, timeLeft] = await Promise.all([
+      mlt.balanceOf(addr),
+      mlt.timeUntilNextClaim(addr)
+    ]);
+    document.getElementById('faucet-bal').textContent = fmt(bal,2) + ' MLT';
+    const btn = document.getElementById('faucet-btn');
+    const countdown = document.getElementById('faucet-countdown');
+    if(Number(timeLeft) === 0){
+      btn.disabled = false;
+      btn.innerHTML = 'Claim Test MLT';
+      countdown.textContent = '';
+    } else {
+      btn.disabled = true;
+      btn.innerHTML = 'Already Claimed';
+      // format time remaining
+      const secs = Number(timeLeft);
+      const h = Math.floor(secs/3600);
+      const m = Math.floor((secs%3600)/60);
+      countdown.innerHTML = 'Next claim in <span>' + h + 'h ' + m + 'm</span>';
+      // auto refresh countdown every minute
+      setTimeout(checkFaucetCooldown, 60000);
+    }
+  } catch(e){ console.error(e) }
 }
 
 async function refresh(){
