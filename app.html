@@ -537,6 +537,12 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
   </div>
 </nav>
 
+<!-- mobile add network banner -->
+<div id="add-network-banner" style="display:none;position:relative;z-index:9;background:rgba(245,166,35,0.08);border-bottom:1px solid rgba(245,166,35,0.2);padding:10px 1rem;display:none;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+  <span style="font-size:12px;color:#F5A623;font-weight:500">⚠ LiteForge not detected in your wallet</span>
+  <button onclick="addNetworkManually()" style="padding:6px 14px;border-radius:8px;background:linear-gradient(135deg,#F5A623,#D4820A);border:none;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Add LiteForge Network</button>
+</div>
+
 <main>
 
 <!-- EARN PAGE -->
@@ -912,6 +918,46 @@ function populatePools(){
   }).catch(()=>{});
 }
 
+// add network manually (for mobile banner)
+async function addNetworkManually(){
+  if(!window.ethereum){toast('Open this page inside your wallet browser (Rabby/MetaMask)','err');return}
+  try{
+    await window.ethereum.request({
+      method:'wallet_addEthereumChain',
+      params:[{
+        chainId:'0x115D',
+        chainName:'LiteForge Testnet',
+        nativeCurrency:{name:'zkLTC',symbol:'zkLTC',decimals:18},
+        rpcUrls:['https://liteforge.rpc.caldera.xyz/http'],
+        blockExplorerUrls:['https://liteforge.explorer.caldera.xyz']
+      }]
+    });
+    document.getElementById('add-network-banner').style.display='none';
+    toast('LiteForge added! Now connect your wallet ✓','ok');
+  } catch(e){
+    toast(e.message||'Could not add network','err');
+  }
+}
+
+// show banner if not on LiteForge
+async function checkNetwork(){
+  if(!window.ethereum)return;
+  try{
+    const chainId=await window.ethereum.request({method:'eth_chainId'});
+    const banner=document.getElementById('add-network-banner');
+    if(parseInt(chainId,16)!==4441){
+      banner.style.display='flex';
+    } else {
+      banner.style.display='none';
+    }
+  } catch{}
+}
+checkNetwork();
+if(window.ethereum){
+  window.ethereum.on('chainChanged',()=>checkNetwork());
+  window.ethereum.on('accountsChanged',()=>location.reload());
+}
+
 const MLT_ADDR  = "0x494c41cdf4bd62a7a0e379f7356c4564E399f844";
 const FARM_ADDR = "0x63c63f7F63376c9fB1A481aBC22463AF98700d70";
 const CHAIN_ID  = 4441;
@@ -979,8 +1025,27 @@ async function connectWallet(){
     await provider.send("eth_requestAccounts",[]);
     const net=await provider.getNetwork();
     if(Number(net.chainId)!==CHAIN_ID){
-      try{await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x115D'}]})}
-      catch{toast('Switch to LiteForge Testnet (4441)','err');return}
+      try{
+        await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x115D'}]});
+      } catch(switchErr){
+        // chain not added yet (common on mobile) — add it then switch
+        try{
+          await window.ethereum.request({
+            method:'wallet_addEthereumChain',
+            params:[{
+              chainId:'0x115D',
+              chainName:'LiteForge Testnet',
+              nativeCurrency:{name:'zkLTC',symbol:'zkLTC',decimals:18},
+              rpcUrls:['https://liteforge.rpc.caldera.xyz/http'],
+              blockExplorerUrls:['https://liteforge.explorer.caldera.xyz']
+            }]
+          });
+          await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x115D'}]});
+        } catch(addErr){
+          toast('Could not add LiteForge — add manually: Chain 4441','err');
+          return;
+        }
+      }
     }
     signer=await provider.getSigner();
     addr=await signer.getAddress();
