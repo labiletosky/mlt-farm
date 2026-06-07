@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Clash+Display:wght@500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -521,6 +522,46 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
   .bottom-tab-bar{display:grid}
   main{padding-bottom:90px!important}
 }
+
+/* ── wallet select modal ── */
+.wmodal-overlay{
+  display:none;position:fixed;inset:0;z-index:500;
+  background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);
+  align-items:flex-end;justify-content:center;
+}
+.wmodal-overlay.open{display:flex}
+@media(min-width:769px){
+  .wmodal-overlay{align-items:center}
+}
+.wmodal{
+  background:var(--s1);border:1px solid var(--line2);
+  border-radius:24px 24px 0 0;width:100%;max-width:420px;
+  padding:1.5rem 1.25rem max(1.5rem,env(safe-area-inset-bottom));
+  animation:slideUp .25s ease;
+}
+@media(min-width:769px){
+  .wmodal{border-radius:24px;margin:1rem}
+}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.wmodal-handle{width:36px;height:4px;border-radius:2px;background:var(--line2);margin:0 auto 1.25rem}
+.wmodal-title{font-size:16px;font-weight:600;letter-spacing:-.01em;margin-bottom:4px}
+.wmodal-sub{font-size:13px;color:var(--muted);margin-bottom:1.25rem}
+.wallet-option{
+  display:flex;align-items:center;gap:12px;
+  width:100%;padding:14px;border-radius:14px;
+  border:1px solid var(--line);background:var(--s2);
+  color:var(--text);font-size:14px;font-weight:500;
+  cursor:pointer;transition:all .15s;
+  font-family:'Inter',sans-serif;margin-bottom:8px;
+  text-align:left;
+}
+.wallet-option:hover{border-color:var(--gold-border);background:var(--s3)}
+.wallet-option:last-child{margin-bottom:0}
+.wo-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.wo-name{font-size:14px;font-weight:600}
+.wo-desc{font-size:12px;color:var(--muted);margin-top:2px}
+.wmodal-cancel{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;margin-top:10px;font-family:'Inter',sans-serif;transition:all .15s}
+.wmodal-cancel:hover{color:var(--text);border-color:var(--line2)}
 </style>
 </head>
 <body>
@@ -880,6 +921,49 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
   </button>
 </div>
 
+<!-- wallet select modal -->
+<div class="wmodal-overlay" id="wmodal" onclick="closeWalletModal(event)">
+  <div class="wmodal">
+    <div class="wmodal-handle"></div>
+    <div class="wmodal-title">Connect Wallet</div>
+    <div class="wmodal-sub">Choose your wallet to get started</div>
+
+    <button class="wallet-option" onclick="connectInjected()">
+      <div class="wo-icon" style="background:rgba(255,140,0,0.1)">🦊</div>
+      <div>
+        <div class="wo-name">MetaMask / Rabby</div>
+        <div class="wo-desc">Browser extension or in-app browser</div>
+      </div>
+    </button>
+
+    <button class="wallet-option" onclick="connectWalletConnect()">
+      <div class="wo-icon" style="background:rgba(82,100,255,0.12)">
+        <svg viewBox="0 0 40 40" width="22" height="22"><circle cx="20" cy="20" r="20" fill="#1A4CDE"/><path d="M11 20c5-5 13-5 18 0" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M14 23c3-3 9-3 12 0" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none"/><circle cx="20" cy="26" r="2" fill="#fff"/></svg>
+      </div>
+      <div>
+        <div class="wo-name">Zerion / Rainbow</div>
+        <div class="wo-desc">Open inside your Zerion or Rainbow app</div>
+      </div>
+    </button>
+
+    <button class="wallet-option" onclick="connectInjected()">
+      <div class="wo-icon" style="background:rgba(100,220,180,0.1)">📱</div>
+      <div>
+        <div class="wo-name">Trust / Coinbase Mobile</div>
+        <div class="wo-desc">Open in your mobile wallet's browser</div>
+      </div>
+    </button>
+
+    <div style="padding:10px 0 4px;text-align:center">
+      <p style="font-size:11px;color:var(--muted);line-height:1.6">
+        💡 <strong style="color:var(--muted2)">Tip:</strong> For best mobile experience, open this page inside your wallet's built-in browser tab
+      </p>
+    </div>
+
+    <button class="wmodal-cancel" onclick="closeWalletModal()">Cancel</button>
+  </div>
+</div>
+
 </div>
 
 <!-- toast -->
@@ -911,7 +995,7 @@ barHeights.forEach(h=>{
 
 // wallet dropdown
 function handleWalletClick(){
-  if(!addr){connectWallet();return}
+  if(!addr){openWalletModal();return}
   document.getElementById('wallet-dropdown').classList.toggle('open');
 }
 document.addEventListener('click',e=>{
@@ -1062,31 +1146,120 @@ function setBtn(id,html,dis){
   b.disabled=dis;
 }
 
-async function connectWallet(){
-  if(!window.ethereum){toast('Please install Rabby or MetaMask','err');return}
+function openWalletModal(){
+  document.getElementById('wmodal').classList.add('open');
+}
+function closeWalletModal(e){
+  if(!e||e.target===document.getElementById('wmodal'))
+    document.getElementById('wmodal').classList.remove('open');
+}
+
+async function connectWalletConnect(){
+  document.getElementById('wmodal').classList.remove('open');
+  toast('Opening WalletConnect...');
   try{
-    provider=new ethers.BrowserProvider(window.ethereum);
-    await provider.send("eth_requestAccounts",[]);
+    // EIP-6963: detect injected providers (Zerion, Rainbow, etc)
+    // Try window.ethereum first (works inside Zerion/Rabby in-app browser)
+    if(window.ethereum){
+      const injectedProviders = [];
+      // collect all announced providers via EIP-6963
+      window.addEventListener('eip6963:announceProvider', e => {
+        injectedProviders.push(e.detail);
+      }, {once:false});
+      window.dispatchEvent(new Event('eip6963:requestProvider'));
+
+      // small delay to collect providers
+      await new Promise(r=>setTimeout(r,200));
+
+      // prefer Zerion if announced
+      const zerion = injectedProviders.find(p=>
+        p.info?.name?.toLowerCase().includes('zerion') ||
+        p.info?.rdns?.includes('io.zerion')
+      );
+
+      const target = zerion ? zerion.provider : window.ethereum;
+      provider = new ethers.BrowserProvider(target);
+      await provider.send('eth_requestAccounts',[]);
+      await finishConnect();
+      return;
+    }
+
+    // fallback: deep link to Zerion mobile
+    const appUrl = encodeURIComponent(window.location.href);
+    const zerionDeepLink = `zerion://browser?url=${appUrl}`;
+    toast('Redirecting to Zerion app...','ok');
+    window.location.href = zerionDeepLink;
+
+    // fallback if deep link fails — show instructions
+    setTimeout(()=>{
+      toast('Open this page inside the Zerion or Rabby app browser','err');
+    }, 2000);
+
+  } catch(e){
+    if(!e.message?.includes('User closed') && !e.message?.includes('user rejected')){
+      toast(e.message||'Connection failed — open inside wallet browser','err');
+    }
+  }
+}
+
+async function connectInjected(){
+  document.getElementById('wmodal').classList.remove('open');
+  // detect best available injected provider
+  let target = window.ethereum;
+  if(!target){
+    toast('No wallet detected — open this page inside your wallet app browser','err');
+    return;
+  }
+  // if multiple providers (e.g. MetaMask + Rabby), pick the right one
+  if(window.ethereum?.providers?.length){
+    // prefer MetaMask
+    target = window.ethereum.providers.find(p=>p.isMetaMask) || window.ethereum.providers[0];
+  }
+  try{
+    provider=new ethers.BrowserProvider(target);
+    await provider.send('eth_requestAccounts',[]);
+    await finishConnect();
+  } catch(e){
+    if(!e.message?.includes('user rejected'))
+      toast(e.message||'Connection failed','err');
+  }
+}
+
+async function connectWallet(){
+  openWalletModal();
+}
+
+async function finishConnect(){
+  // use provider.send for WalletConnect compatibility, fallback to window.ethereum
+  async function walletRequest(method, params){
+    // try provider.send first (works for WalletConnect / Zerion)
+    try{ return await provider.send(method, params||[]) }
+    catch(e1){
+      // fallback to window.ethereum directly
+      if(window.ethereum){
+        try{ return await window.ethereum.request({method, params:params||[]}) }
+        catch(e2){ throw e2 }
+      }
+      throw e1;
+    }
+  }
+  try{
     const net=await provider.getNetwork();
     if(Number(net.chainId)!==CHAIN_ID){
       try{
-        await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x1159'}]});
+        await walletRequest('wallet_switchEthereumChain',[{chainId:'0x1159'}]);
       } catch(switchErr){
-        // chain not added yet (common on mobile) — add it then switch
         try{
-          await window.ethereum.request({
-            method:'wallet_addEthereumChain',
-            params:[{
-              chainId:'0x1159',
-              chainName:'LiteForge Testnet',
-              nativeCurrency:{name:'zkLTC',symbol:'zkLTC',decimals:18},
-              rpcUrls:['https://liteforge.rpc.caldera.xyz/http'],
-              blockExplorerUrls:['https://liteforge.explorer.caldera.xyz']
-            }]
-          });
-          await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x1159'}]});
+          await walletRequest('wallet_addEthereumChain',[{
+            chainId:'0x1159',
+            chainName:'LiteForge Testnet',
+            nativeCurrency:{name:'zkLTC',symbol:'zkLTC',decimals:18},
+            rpcUrls:['https://liteforge.rpc.caldera.xyz/http'],
+            blockExplorerUrls:['https://liteforge.explorer.caldera.xyz']
+          }]);
+          await walletRequest('wallet_switchEthereumChain',[{chainId:'0x1159'}]);
         } catch(addErr){
-          toast('Could not add LiteForge — add manually: Chain 4441','err');
+          toast('Please switch to LiteForge (Chain 4441) in your wallet','err');
           return;
         }
       }
