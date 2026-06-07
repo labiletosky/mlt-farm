@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
+<link rel="icon" type="image/png" href="favicon.png"/>
+<link rel="shortcut icon" href="favicon.png"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>MLT Farm</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -83,6 +85,83 @@ nav{
 }
 .connect-btn:hover{border-color:var(--gold-border);background:var(--surface3)}
 .connect-btn.on{border-color:var(--gold-border);color:var(--gold)}
+.wallet-menu{position:relative;display:inline-block}
+.wallet-dropdown{
+  display:none;position:absolute;right:0;top:calc(100% + 8px);
+  background:var(--surface2);border:1px solid var(--line2);
+  border-radius:var(--r2);min-width:180px;z-index:100;
+  overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4);
+}
+.wallet-dropdown.open{display:block}
+.wd-address{
+  padding:12px 14px;font-size:12px;color:var(--muted);
+  border-bottom:1px solid var(--line);word-break:break-all;
+  letter-spacing:.02em;
+}
+.wd-item{
+  display:flex;align-items:center;gap:8px;
+  padding:11px 14px;font-size:13px;font-weight:500;
+  color:var(--text);cursor:pointer;transition:background .15s;
+  border:none;background:transparent;width:100%;
+  font-family:'Inter',sans-serif;
+}
+.wd-item:hover{background:var(--surface3)}
+.wd-item.red{color:#EF4444}
+.wd-item svg{width:15px;height:15px;opacity:.6}
+
+/* pools + analytics pages */
+.page{display:none}
+.page.active{display:block}
+.coming-card{
+  max-width:480px;margin:0 auto;
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);padding:3rem 2rem;text-align:center;
+}
+.coming-icon{
+  width:56px;height:56px;border-radius:16px;
+  background:var(--gold-dim);border:1px solid var(--gold-border);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 1.25rem;
+}
+.coming-icon svg{width:26px;height:26px;stroke:var(--gold);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.coming-title{font-size:20px;font-weight:600;letter-spacing:-.02em;margin-bottom:8px}
+.coming-sub{font-size:14px;color:var(--muted2);line-height:1.6;max-width:320px;margin:0 auto 1.5rem}
+.coming-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:20px;
+  background:var(--gold-dim);border:1px solid var(--gold-border);
+  font-size:12px;font-weight:500;color:var(--gold);
+}
+.pools-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:760px;margin-bottom:1.5rem}
+.pool-row-card{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);padding:1.25rem;
+  transition:border-color .2s;
+}
+.pool-row-card:hover{border-color:var(--line2)}
+.prc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.prc-name{font-size:14px;font-weight:600}
+.prc-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.prc-stat-label{font-size:11px;color:var(--muted);margin-bottom:4px;letter-spacing:.04em;text-transform:uppercase}
+.prc-stat-val{font-size:15px;font-weight:600}
+.prc-stat-val.gold{color:var(--gold)}
+.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:760px;margin-bottom:1.5rem}
+.an-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:1.25rem}
+.an-label{font-size:11px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px}
+.an-val{font-size:22px;font-weight:600;letter-spacing:-.02em}
+.an-val.gold{color:var(--gold)}
+.an-val.gr{color:var(--green)}
+.an-sub{font-size:12px;color:var(--muted);margin-top:4px}
+.chart-placeholder{
+  width:100%;max-width:760px;
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);padding:1.5rem;margin-bottom:1.5rem;
+}
+.cp-label{font-size:13px;font-weight:500;margin-bottom:1rem}
+.cp-bars{display:flex;align-items:flex-end;gap:6px;height:80px}
+.cp-bar{flex:1;border-radius:4px 4px 0 0;background:var(--gold-dim);border:1px solid var(--gold-border);transition:background .2s}
+.cp-bar:hover{background:rgba(245,166,35,0.25)}
+
 .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);flex-shrink:0}
 .live-dot.off{background:var(--muted);box-shadow:none}
 
@@ -329,17 +408,37 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
     <span class="logo-word">MLT<span>Farm</span></span>
   </div>
   <div class="nav-pills">
-    <button class="nav-pill on">Earn</button>
-    <button class="nav-pill">Pools</button>
-    <button class="nav-pill">Analytics</button>
+    <button class="nav-pill on" id="nav-earn" onclick="showPage('earn')">Earn</button>
+    <button class="nav-pill" id="nav-pools" onclick="showPage('pools')">Pools</button>
+    <button class="nav-pill" id="nav-analytics" onclick="showPage('analytics')">Analytics</button>
   </div>
-  <button class="connect-btn" id="connect-btn" onclick="connectWallet()">
-    <div class="live-dot off" id="live-dot"></div>
-    <span id="connect-label">Connect Wallet</span>
-  </button>
+  <div class="wallet-menu" id="wallet-menu">
+    <button class="connect-btn" id="connect-btn" onclick="handleWalletClick()">
+      <div class="live-dot off" id="live-dot"></div>
+      <span id="connect-label">Connect Wallet</span>
+    </button>
+    <div class="wallet-dropdown" id="wallet-dropdown">
+      <div class="wd-address" id="wd-full-addr">—</div>
+      <button class="wd-item" onclick="copyAddress()">
+        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        Copy Address
+      </button>
+      <a class="wd-item" id="wd-explorer" href="#" target="_blank">
+        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        View on Explorer
+      </a>
+      <button class="wd-item red" onclick="disconnectWallet()">
+        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Disconnect
+      </button>
+    </div>
+  </div>
 </nav>
 
 <main>
+
+<!-- EARN PAGE -->
+<div class="page active" id="page-earn">
 
   <div class="page-head">
     <div class="page-eyebrow">
@@ -484,7 +583,7 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
 
   </div>
 
-  <div class="bottom-links">
+    <div class="bottom-links">
     <a class="bl-link" href="https://liteforge.explorer.caldera.xyz/address/0x63c63f7F63376c9fB1A481aBC22463AF98700d70" target="_blank">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
       Farm Contract
@@ -503,6 +602,134 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
     </a>
   </div>
 
+</div><!-- end page-earn -->
+
+<!-- POOLS PAGE -->
+<div class="page" id="page-pools">
+  <div class="page-head">
+    <div class="page-eyebrow">
+      <svg viewBox="0 0 8 8"><circle cx="4" cy="4" r="4"/></svg>
+      All Pools · LiteForge Testnet
+    </div>
+    <h1 class="page-title">Staking <span>Pools</span></h1>
+    <p class="page-sub">All available staking pools on MLT Farm. Deposit tokens and earn rewards every second.</p>
+  </div>
+
+  <div class="pools-grid">
+    <div class="pool-row-card">
+      <div class="prc-top">
+        <div>
+          <div class="prc-name">MLT Single Stake</div>
+          <div class="prc-meta">Pool 0 · Earn MLT</div>
+        </div>
+        <div class="active-chip" style="font-size:11px;padding:3px 10px">● Active</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <div class="prc-stat-label">APY</div>
+          <div class="prc-stat-val gold" id="p-apy">—</div>
+        </div>
+        <div>
+          <div class="prc-stat-label">TVL</div>
+          <div class="prc-stat-val" id="p-tvl">—</div>
+        </div>
+        <div>
+          <div class="prc-stat-label">Reward Token</div>
+          <div class="prc-stat-val">MLT</div>
+        </div>
+        <div>
+          <div class="prc-stat-label">Lock-up</div>
+          <div class="prc-stat-val">None</div>
+        </div>
+      </div>
+      <button class="action-btn stake" style="margin-top:1rem;padding:11px" onclick="showPage('earn')">Stake Now →</button>
+    </div>
+
+    <div class="pool-row-card" style="opacity:.5">
+      <div class="prc-top">
+        <div>
+          <div class="prc-name">Pool 1</div>
+          <div class="prc-meta">Coming soon</div>
+        </div>
+        <div style="padding:3px 10px;border-radius:6px;background:var(--surface3);font-size:11px;color:var(--muted)">Soon</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><div class="prc-stat-label">APY</div><div class="prc-stat-val">—</div></div>
+        <div><div class="prc-stat-label">TVL</div><div class="prc-stat-val">—</div></div>
+        <div><div class="prc-stat-label">Reward Token</div><div class="prc-stat-val">TBA</div></div>
+        <div><div class="prc-stat-label">Lock-up</div><div class="prc-stat-val">TBA</div></div>
+      </div>
+      <button class="action-btn unstake" style="margin-top:1rem;padding:11px" disabled>Coming Soon</button>
+    </div>
+  </div>
+</div><!-- end page-pools -->
+
+<!-- ANALYTICS PAGE -->
+<div class="page" id="page-analytics">
+  <div class="page-head">
+    <div class="page-eyebrow">
+      <svg viewBox="0 0 8 8"><circle cx="4" cy="4" r="4"/></svg>
+      Protocol Analytics · LiteForge Testnet
+    </div>
+    <h1 class="page-title">Farm <span>Analytics</span></h1>
+    <p class="page-sub">Real-time protocol stats for MLT Farm on LitVM LiteForge testnet.</p>
+  </div>
+
+  <div class="analytics-grid">
+    <div class="an-card">
+      <div class="an-label">Total Value Staked</div>
+      <div class="an-val gold" id="an-tvl">—</div>
+      <div class="an-sub">Pool 0 · MLT</div>
+    </div>
+    <div class="an-card">
+      <div class="an-label">Current APY</div>
+      <div class="an-val gr" id="an-apy">—</div>
+      <div class="an-sub">Live rate</div>
+    </div>
+    <div class="an-card">
+      <div class="an-label">Reward Pool</div>
+      <div class="an-val">400,000</div>
+      <div class="an-sub">MLT available</div>
+    </div>
+    <div class="an-card">
+      <div class="an-label">Reward Rate</div>
+      <div class="an-val">0.001</div>
+      <div class="an-sub">MLT per second</div>
+    </div>
+    <div class="an-card">
+      <div class="an-label">Your Stake</div>
+      <div class="an-val" id="an-stake">—</div>
+      <div class="an-sub">MLT deposited</div>
+    </div>
+    <div class="an-card">
+      <div class="an-label">Your Rewards</div>
+      <div class="an-val gold" id="an-rw">—</div>
+      <div class="an-sub">Claimable MLT</div>
+    </div>
+  </div>
+
+  <div class="chart-placeholder">
+    <div class="cp-label">Staking Activity — Pool 0</div>
+    <div class="cp-bars" id="cp-bars"></div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px">
+      <span style="font-size:11px;color:var(--muted)">Mon</span>
+      <span style="font-size:11px;color:var(--muted)">Tue</span>
+      <span style="font-size:11px;color:var(--muted)">Wed</span>
+      <span style="font-size:11px;color:var(--muted)">Thu</span>
+      <span style="font-size:11px;color:var(--muted)">Fri</span>
+      <span style="font-size:11px;color:var(--muted)">Sat</span>
+      <span style="font-size:11px;color:var(--muted)">Today</span>
+    </div>
+  </div>
+
+  <div style="text-align:center">
+    <a class="bl-link" style="display:inline-flex" href="https://liteforge.explorer.caldera.xyz/address/0x63c63f7F63376c9fB1A481aBC22463AF98700d70" target="_blank">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      View full history on Explorer
+    </a>
+  </div>
+</div><!-- end page-analytics -->
+
 </main>
 </div>
 
@@ -512,6 +739,77 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
 </div>
 
 <script>
+// page routing
+function showPage(page){
+  ['earn','pools','analytics'].forEach(p=>{
+    document.getElementById('page-'+p).classList.toggle('active',p===page);
+    document.getElementById('nav-'+p).classList.toggle('on',p===page);
+  });
+  if(page==='analytics') populateAnalytics();
+  if(page==='pools') populatePools();
+}
+
+// chart bars
+const barHeights=[35,50,42,70,55,80,100];
+const barsEl=document.getElementById('cp-bars');
+barHeights.forEach(h=>{
+  const b=document.createElement('div');
+  b.className='cp-bar';b.style.height=h+'%';barsEl.appendChild(b);
+});
+
+// wallet dropdown
+function handleWalletClick(){
+  if(!addr){connectWallet();return}
+  document.getElementById('wallet-dropdown').classList.toggle('open');
+}
+document.addEventListener('click',e=>{
+  if(!document.getElementById('wallet-menu').contains(e.target)){
+    document.getElementById('wallet-dropdown').classList.remove('open');
+  }
+});
+function copyAddress(){
+  if(!addr)return;
+  navigator.clipboard.writeText(addr);
+  toast('Address copied ✓','ok');
+  document.getElementById('wallet-dropdown').classList.remove('open');
+}
+function disconnectWallet(){
+  addr=null;signer=null;provider=null;mlt=null;farm=null;
+  clearInterval(pollTimer);
+  document.getElementById('connect-btn').className='connect-btn';
+  document.getElementById('connect-label').textContent='Connect Wallet';
+  document.getElementById('live-dot').classList.add('off');
+  document.getElementById('wallet-dropdown').classList.remove('open');
+  ['sc-apy','sc-stake','sc-tvl','sc-rw','ip-balance','rw-big'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.textContent='—';
+  });
+  document.getElementById('sc-rw-note').textContent='Connect wallet';
+  document.getElementById('rw-big').innerHTML='0.0000<span>MLT</span>';
+  ['approve-btn','stake-btn','unstake-btn','claim-btn'].forEach(id=>{
+    const b=document.getElementById(id);if(b)b.disabled=true;
+  });
+  toast('Wallet disconnected');
+}
+
+function populateAnalytics(){
+  if(!addr)return;
+  Promise.all([
+    farm.getAPY(0),farm.pools(0),farm.userInfo(0,addr),farm.pendingRewards(0,addr)
+  ]).then(([apy,pool,ui,rw])=>{
+    document.getElementById('an-apy').textContent=(Number(apy)/100).toFixed(1)+'%';
+    document.getElementById('an-tvl').textContent=fmtK(pool[2])+' MLT';
+    document.getElementById('an-stake').textContent=fmt(ui[0],2)+' MLT';
+    document.getElementById('an-rw').textContent=fmt(rw)+' MLT';
+  }).catch(()=>{});
+}
+function populatePools(){
+  if(!addr)return;
+  Promise.all([farm.getAPY(0),farm.pools(0)]).then(([apy,pool])=>{
+    document.getElementById('p-apy').textContent=(Number(apy)/100).toFixed(1)+'%';
+    document.getElementById('p-tvl').textContent=fmtK(pool[2])+' MLT';
+  }).catch(()=>{});
+}
+
 const MLT_ADDR  = "0x494c41cdf4bd62a7a0e379f7356c4564E399f844";
 const FARM_ADDR = "0x63c63f7F63376c9fB1A481aBC22463AF98700d70";
 const CHAIN_ID  = 4441;
@@ -590,6 +888,8 @@ async function connectWallet(){
     document.getElementById('connect-btn').classList.add('on');
     document.getElementById('connect-label').textContent=short;
     document.getElementById('live-dot').classList.remove('off');
+    document.getElementById('wd-full-addr').textContent=addr;
+    document.getElementById('wd-explorer').href='https://liteforge.explorer.caldera.xyz/address/'+addr;
     ['approve-btn','stake-btn','unstake-btn','claim-btn'].forEach(id=>setBtn(id,null,false));
     await refresh();
     clearInterval(pollTimer);
