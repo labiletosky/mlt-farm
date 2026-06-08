@@ -667,7 +667,7 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
     <div class="stat-cell">
       <div class="sc-label">APY</div>
       <div class="sc-value amber" id="sc-apy">—</div>
-      <div class="sc-note">Pool 0 · Live rate</div>
+      <div class="sc-note">Pool 1 · Live rate</div>
     </div>
     <div class="stat-cell">
       <div class="sc-label">Your Stake</div>
@@ -677,7 +677,7 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
     <div class="stat-cell">
       <div class="sc-label">Total Staked</div>
       <div class="sc-value" id="sc-tvl">—</div>
-      <div class="sc-note">Pool 0</div>
+      <div class="sc-note">Pool 1</div>
     </div>
     <div class="stat-cell">
       <div class="sc-label">Rewards</div>
@@ -695,7 +695,7 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
           <div class="token-pair">MLT</div>
           <div>
             <div class="ip-title">MLT Single Stake</div>
-            <div class="ip-sub">Pool 0 · Earn MLT</div>
+            <div class="ip-sub">Pool 1 · Earn MLT</div>
           </div>
           <div class="active-chip">● Active</div>
         </div>
@@ -855,7 +855,7 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
       <div class="prc-top">
         <div>
           <div class="prc-name">MLT Single Stake</div>
-          <div class="prc-meta">Pool 0 · Earn MLT</div>
+          <div class="prc-meta">Pool 1 · Earn MLT</div>
         </div>
         <div class="active-chip" style="font-size:11px;padding:3px 10px">● Active</div>
       </div>
@@ -914,7 +914,7 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
     <div class="an-card">
       <div class="an-label">Total Value Staked</div>
       <div class="an-val gold" id="an-tvl">—</div>
-      <div class="an-sub">Pool 0 · MLT</div>
+      <div class="an-sub">Pool 1 · MLT</div>
     </div>
     <div class="an-card">
       <div class="an-label">Current APY</div>
@@ -944,7 +944,7 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
   </div>
 
   <div class="chart-placeholder">
-    <div class="cp-label">Staking Activity — Pool 0</div>
+    <div class="cp-label">Staking Activity — Pool 1</div>
     <div class="cp-bars" id="cp-bars"></div>
     <div style="display:flex;justify-content:space-between;margin-top:8px">
       <span style="font-size:11px;color:var(--muted)">Mon</span>
@@ -1092,7 +1092,7 @@ function disconnectWallet(){
 function populateAnalytics(){
   if(!addr)return;
   Promise.all([
-    farm.getAPY(0),farm.pools(0),farm.userInfo(0,addr),farm.pendingRewards(0,addr)
+    farm.getAPY(1),farm.pools(1),farm.userInfo(1,addr),farm.pendingRewards(1,addr)
   ]).then(([apy,pool,ui,rw])=>{
     document.getElementById('an-apy').textContent=(Number(apy)/100).toFixed(1)+'%';
     document.getElementById('an-tvl').textContent=fmtK(pool[2])+' MLT';
@@ -1213,7 +1213,7 @@ async function setMax(t){
     const b=await mlt.balanceOf(addr);
     document.getElementById('stake-in').value=fmt(b,4);
   } else {
-    const[a]=await farm.userInfo(0,addr);
+    const[a]=await farm.userInfo(1,addr);
     document.getElementById('unstake-in').value=fmt(a,4);
   }
 }
@@ -1412,10 +1412,10 @@ async function refresh(){
   try{
     const[bal,ui,pool,apy,rw]=await Promise.all([
       mlt.balanceOf(addr),
-      farm.userInfo(0,addr),
-      farm.pools(0),
-      farm.getAPY(0),
-      farm.pendingRewards(0,addr)
+      farm.userInfo(1,addr),
+      farm.pools(1),
+      farm.getAPY(1),
+      farm.pendingRewards(1,addr)
     ]);
     const apyPct=(Number(apy)/100).toFixed(1)+'%';
     document.getElementById('sc-apy').textContent=apyPct;
@@ -1434,7 +1434,7 @@ async function refresh(){
 async function pollRw(){
   if(!addr)return;
   try{
-    const rw=await farm.pendingRewards(0,addr);
+    const rw=await farm.pendingRewards(1,addr);
     const v=fmt(rw);
     document.getElementById('sc-rw').textContent=v+' MLT';
     document.getElementById('rw-big').innerHTML=v+'<span>MLT</span>';
@@ -1465,7 +1465,7 @@ async function handleStake(){
     const amt=ethers.parseEther(v);
     const al=await mlt.allowance(addr,FARM_ADDR);
     if(al<amt){toast('Approve MLT first','err');setBtn('stake-btn','Stake MLT',false);return}
-    const tx=await farm.stake(0,amt);
+    const tx=await farm.stake(1,amt);
     toast('Transaction sent…');
     await tx.wait();
     document.getElementById('stake-in').value='';
@@ -1483,7 +1483,7 @@ async function handleUnstake(){
   if(!v||+v<=0){toast('Enter an amount','err');return}
   try{
     setBtn('unstake-btn','<span class="spin"></span>Unstaking…',true);
-    const tx=await farm.unstake(0,ethers.parseEther(v));
+    const tx=await farm.unstake(1,ethers.parseEther(v));
     toast('Transaction sent…');
     await tx.wait();
     document.getElementById('unstake-in').value='';
@@ -1499,7 +1499,7 @@ async function handleUnstake(){
 async function handleClaim(){
   try{
     setBtn('claim-btn','<span class="spin"></span>Claiming…',true);
-    const tx=await farm.claimRewards(0);
+    const tx=await farm.claimRewards(1);
     toast('Claim submitted…');
     await tx.wait();
     toast('Rewards claimed successfully ✓','ok');
