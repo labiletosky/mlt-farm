@@ -989,6 +989,9 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
     <div class="wmodal-handle"></div>
     <div class="wmodal-title">Connect Wallet</div>
     <div class="wmodal-sub">Choose your wallet to get started</div>
+    <div style="padding:10px 12px;background:rgba(245,166,35,0.06);border:1px solid rgba(245,166,35,0.15);border-radius:8px;font-size:11px;color:#F5A623;line-height:1.6;margin-bottom:4px">
+      📱 <strong>On Zerion mobile?</strong> Open this URL inside Zerion → tap the browser/discovery tab → paste the app URL there for best results.
+    </div>
 
     <button class="wallet-option" onclick="connectInjected()">
       <div class="wo-icon" style="background:rgba(255,140,0,0.1)">🦊</div>
@@ -1004,7 +1007,7 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
       </div>
       <div>
         <div class="wo-name">Zerion / Rainbow</div>
-        <div class="wo-desc">Open inside your Zerion or Rainbow app</div>
+        <div class="wo-desc">Use Zerion's in-app browser → paste URL in Discovery tab</div>
       </div>
     </button>
 
@@ -1234,49 +1237,66 @@ function closeWalletModal(e){
 
 async function connectWalletConnect(){
   document.getElementById('wmodal').classList.remove('open');
-  toast('Opening WalletConnect...');
+  toast('Connecting to Zerion...');
   try{
-    // EIP-6963: detect injected providers (Zerion, Rainbow, etc)
-    // Try window.ethereum first (works inside Zerion/Rabby in-app browser)
-    if(window.ethereum){
-      const injectedProviders = [];
-      // collect all announced providers via EIP-6963
-      window.addEventListener('eip6963:announceProvider', e => {
-        injectedProviders.push(e.detail);
-      }, {once:false});
-      window.dispatchEvent(new Event('eip6963:requestProvider'));
+    // wait for Zerion to inject window.ethereum (it can be delayed)
+    const getProvider = () => new Promise((resolve, reject) => {
+      // already injected
+      if(window.ethereum){ resolve(window.ethereum); return; }
+      // wait up to 3 seconds for injection
+      let tries = 0;
+      const interval = setInterval(() => {
+        tries++;
+        if(window.ethereum){
+          clearInterval(interval);
+          resolve(window.ethereum);
+        } else if(tries >= 30){ // 30 * 100ms = 3s
+          clearInterval(interval);
+          reject(new Error('no_provider'));
+        }
+      }, 100);
+    });
 
-      // small delay to collect providers
-      await new Promise(r=>setTimeout(r,200));
-
-      // prefer Zerion if announced
-      const zerion = injectedProviders.find(p=>
-        p.info?.name?.toLowerCase().includes('zerion') ||
-        p.info?.rdns?.includes('io.zerion')
-      );
-
-      const target = zerion ? zerion.provider : window.ethereum;
-      provider = new ethers.BrowserProvider(target);
-      await provider.send('eth_requestAccounts',[]);
-      await finishConnect();
+    let ethProvider;
+    try{
+      ethProvider = await getProvider();
+    } catch(e){
+      // no window.ethereum — try deep link into Zerion
+      const url = encodeURIComponent(window.location.href);
+      window.location.href = 'zerion://browser?url=' + url;
+      setTimeout(()=>toast('Open this page inside the Zerion app browser → Discovery tab','err'), 2000);
       return;
     }
 
-    // fallback: deep link to Zerion mobile
-    const appUrl = encodeURIComponent(window.location.href);
-    const zerionDeepLink = `zerion://browser?url=${appUrl}`;
-    toast('Redirecting to Zerion app...','ok');
-    window.location.href = zerionDeepLink;
+    // collect EIP-6963 announced providers
+    const announced = [];
+    const handler = e => announced.push(e.detail);
+    window.addEventListener('eip6963:announceProvider', handler);
+    window.dispatchEvent(new Event('eip6963:requestProvider'));
+    await new Promise(r => setTimeout(r, 300));
+    window.removeEventListener('eip6963:announceProvider', handler);
 
-    // fallback if deep link fails — show instructions
-    setTimeout(()=>{
-      toast('Open this page inside the Zerion or Rabby app browser','err');
-    }, 2000);
+    // pick Zerion provider if announced, else fallback to window.ethereum
+    const zerionDetail = announced.find(p =>
+      p.info?.name?.toLowerCase().includes('zerion') ||
+      p.info?.rdns === 'io.zerion.wallet'
+    );
+    const target = zerionDetail ? zerionDetail.provider : ethProvider;
+
+    // handle multiple injected providers (e.g. MetaMask + Zerion both installed)
+    let finalTarget = target;
+    if(!zerionDetail && ethProvider.providers?.length){
+      // prefer non-MetaMask provider
+      finalTarget = ethProvider.providers.find(p => !p.isMetaMask) || ethProvider.providers[0];
+    }
+
+    provider = new ethers.BrowserProvider(finalTarget);
+    await provider.send('eth_requestAccounts', []);
+    await finishConnect();
 
   } catch(e){
-    if(!e.message?.includes('User closed') && !e.message?.includes('user rejected')){
-      toast(e.message||'Connection failed — open inside wallet browser','err');
-    }
+    if(e.message?.includes('user rejected') || e.message?.includes('User closed')) return;
+    toast(e.message || 'Connection failed — open inside Zerion browser tab','err');
   }
 }
 
