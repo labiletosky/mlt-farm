@@ -8,8 +8,8 @@
 
 | Contract | Address |
 |---|---|
-| MLT Token (ERC-20) | `0x494c41cdf4bd62a7a0e379f7356c4564E399f844` |
-| MLTFarm (Yield Farm) | `0x63c63f7F63376c9fB1A481aBC22463AF98700d70` |
+| MLTToken (ERC-20 + Faucet) | `0x705c4D8Deb24F25d92c9e96621df6036134810bD` |
+| MLTFarm (Yield Farm) | `0xd11793cF5a4B78Dd4607c01d1f064BA746Bc5E4F` |
 
 🔍 View on explorer: [liteforge.explorer.caldera.xyz](https://liteforge.explorer.caldera.xyz)
 
@@ -26,25 +26,45 @@ It is deployed on **LitVM**, a zero-knowledge rollup built on Litecoin using Arb
 ## ✨ Features
 
 - ✅ **ERC-20 Token** — MLT token with 1,000,000 total supply
+- ✅ **Built-in Faucet** — anyone can claim 1,000 MLT free every 24 hours
 - ✅ **Multi-pool architecture** — supports multiple staking pools with different tokens
 - ✅ **Real-time rewards** — rewards accrue every second, claimable anytime
 - ✅ **Live APY** — on-chain APY calculation per pool
 - ✅ **No lock-up** — stake and unstake freely at any time
-- ✅ **Frontend DApp** — full web interface with Rabby/MetaMask wallet support
+- ✅ **Frontend DApp** — full web interface with Rabby/MetaMask/Zerion support
+- ✅ **Mobile ready** — responsive UI with bottom tab bar navigation
+- ✅ **Auto network** — app auto-adds LiteForge (Chain 4441) to any wallet
 - ✅ **LiteForge native** — deployed and tested on LitVM testnet
+
+---
+
+## 🚀 How to Test
+
+1. Visit the live app
+2. Connect your wallet (Rabby, MetaMask, or Zerion)
+3. App auto-switches to LiteForge Testnet (Chain 4441)
+4. Get free zkLTC gas from the faucet: [liteforge.hub.caldera.xyz](https://liteforge.hub.caldera.xyz)
+5. Click **"Claim Test MLT"** → receive 1,000 MLT free
+6. Click **Approve MLT** → confirm in wallet
+7. Enter amount → click **Stake MLT** → confirm
+8. Watch rewards accumulate every second ⏱️
+9. Click **Claim Rewards** anytime
 
 ---
 
 ## 🏗️ Smart Contracts
 
-### `MyLitToken.sol`
-Standard ERC-20 token built with OpenZeppelin. Mints 1,000,000 MLT to the deployer on deployment.
+### `MLTToken.sol`
+ERC-20 token built with OpenZeppelin. Includes a built-in faucet so anyone can claim 1,000 MLT every 24 hours for testing.
 
-### `MLTStaking.sol`
-Basic single-pool staking contract. Users deposit MLT and earn MLT rewards per second based on their share of the pool.
+| Function | Description |
+|---|---|
+| `faucet()` | Claim 1,000 MLT free (24hr cooldown) |
+| `timeUntilNextClaim(address)` | Check cooldown remaining |
+| `fundFaucet(amount)` | Owner funds the faucet pool |
 
 ### `MLTFarm.sol`
-Upgraded multi-pool yield farm. Key functions:
+Multi-pool yield farm. Key functions:
 
 | Function | Description |
 |---|---|
@@ -54,44 +74,21 @@ Upgraded multi-pool yield farm. Key functions:
 | `claimRewards(poolId)` | Claim accumulated rewards |
 | `pendingRewards(poolId, user)` | View real-time pending rewards |
 | `getAPY(poolId)` | Returns current APY in basis points |
+| `poolLength()` | Returns number of active pools |
 
 ---
 
 ## 🖥️ Frontend
 
-The frontend (`index.html`) is a single-file DApp built with:
+The frontend (`app.html`) is a single-file DApp built with:
 - **ethers.js v6** — wallet connection and contract interaction
 - **Vanilla HTML/CSS/JS** — no framework dependencies
-- **Rabby / MetaMask** — EIP-1193 wallet support
+- **EIP-6963** — supports Rabby, MetaMask, Zerion, Rainbow
 
-### Features:
-- Auto-detects and switches to LiteForge (Chain ID 4441)
-- Approve → Stake → Unstake → Claim rewards flow
-- Live reward counter refreshing every 5 seconds
-- Real-time APY and TVL display
-- Links to block explorer for both contracts
-
----
-
-## 🚀 Getting Started
-
-### Add LiteForge to your wallet
-
-| Field | Value |
-|---|---|
-| Network Name | LiteForge |
-| RPC URL | https://liteforge.rpc.caldera.xyz/http |
-| Chain ID | 4441 |
-| Currency Symbol | zkLTC |
-| Block Explorer | https://liteforge.explorer.caldera.xyz |
-
-### Get testnet zkLTC
-Visit the faucet: [liteforge.hub.caldera.xyz](https://liteforge.hub.caldera.xyz)
-
-### Use the DApp
-1. Open the live app
-2. Click **Connect Wallet**
-3. Approve MLT → Stake → Earn rewards
+### Pages:
+- **Earn** — stake/unstake/claim + faucet + live rewards
+- **Pools** — all active pools with APY and TVL
+- **Analytics** — protocol stats and charts
 
 ---
 
@@ -105,7 +102,7 @@ Visit the faucet: [liteforge.hub.caldera.xyz](https://liteforge.hub.caldera.xyz)
 | Network | LitVM LiteForge Testnet |
 | Frontend | HTML + CSS + ethers.js v6 |
 | Hosting | Vercel |
-| Wallet | Rabby / MetaMask |
+| Wallet Support | Rabby, MetaMask, Zerion |
 
 ---
 
@@ -115,8 +112,10 @@ Visit the faucet: [liteforge.hub.caldera.xyz](https://liteforge.hub.caldera.xyz)
 |---|---|
 | Network | LiteForge (LitVM Testnet) |
 | Chain ID | 4441 |
+| RPC URL | https://liteforge.rpc.caldera.xyz/http |
 | Gas Token | zkLTC |
 | Block Time | ~0.4 seconds |
+| Explorer | https://liteforge.explorer.caldera.xyz |
 | Settlement | Litecoin |
 
 ---
@@ -125,7 +124,9 @@ Visit the faucet: [liteforge.hub.caldera.xyz](https://liteforge.hub.caldera.xyz)
 
 ```
 mlt-farm/
-├── index.html          # Frontend DApp (single file)
+├── index.html          # Landing page
+├── app.html            # DApp frontend
+├── favicon.png         # App icon
 └── README.md           # This file
 ```
 
@@ -133,11 +134,11 @@ mlt-farm/
 
 ## 🔮 Roadmap
 
-- [ ] Add second staking pool with a different token
+- [ ] Add more staking pools
 - [ ] Deploy to LitVM mainnet
-- [ ] Add referral rewards system
+- [ ] Referral rewards system
 - [ ] Analytics dashboard
-- [ ] Mobile-optimized UI
+- [ ] Token swap integration
 
 ---
 
@@ -152,7 +153,7 @@ Learn more: [litvm.com](https://www.litvm.com) · [docs.litvm.com](https://docs.
 
 ---
 
-## 📬 Contact
+## 📬 Community
 
 - **Telegram:** [t.me/litecoinvm](https://t.me/litecoinvm)
 - **Twitter:** [@LitecoinVM](https://twitter.com/LitecoinVM)
