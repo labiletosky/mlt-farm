@@ -4,6 +4,16 @@
 
 ---
 
+## 🌐 Live App
+
+| | Link |
+|---|---|
+| 🚀 App | [mlt-farm.netlify.app/app.html](https://mlt-farm.netlify.app/app.html) |
+| 🏠 Landing | [mlt-farm.netlify.app](https://mlt-farm.netlify.app) |
+| 💻 GitHub | [github.com/labiletosky/mlt-farm](https://github.com/labiletosky/mlt-farm) |
+
+---
+
 ## 🔗 Live Contracts (LiteForge Testnet)
 
 | Contract | Address |
