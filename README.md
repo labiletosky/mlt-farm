@@ -8,8 +8,8 @@
 
 | | Link |
 |---|---|
-| 🚀 App | [mlt-farm.netlify.app/app.html](https://mlt-farm.netlify.app/app.html) |
-| 🏠 Landing | [mlt-farm.netlify.app](https://mlt-farm.netlify.app) |
+| 🚀 App | [mltfarm.xyz/app.html](https://mltfarm.xyz/app.html) |
+| 🏠 Landing | [mltfarm.xyz](https://mltfarm.xyz) |
 | 💻 GitHub | [github.com/labiletosky/mlt-farm](https://github.com/labiletosky/mlt-farm) |
 
 ---
