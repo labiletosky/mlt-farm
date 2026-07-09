@@ -1295,14 +1295,28 @@ async function loadHistory(){
 
     const farmWithEvents = new ethers.Contract(FARM_ADDR, FARM_ABI_EVENTS, provider);
     const currentBlock = await provider.getBlockNumber();
-    const fromBlock = Math.max(0, currentBlock - 100000);
+    // use smaller block range to avoid RPC limits (try 5000 blocks first)
+    const BLOCK_RANGE = 5000;
+    const fromBlock = Math.max(0, currentBlock - BLOCK_RANGE);
 
-    // fetch all 3 event types in parallel
-    const [stakedEvents, unstakedEvents, claimedEvents] = await Promise.all([
-      farmWithEvents.queryFilter(farmWithEvents.filters.Staked(addr), fromBlock),
-      farmWithEvents.queryFilter(farmWithEvents.filters.Unstaked(addr), fromBlock),
-      farmWithEvents.queryFilter(farmWithEvents.filters.RewardsClaimed(addr), fromBlock)
-    ]);
+    // fetch events with retry on smaller range if fails
+    let stakedEvents=[], unstakedEvents=[], claimedEvents=[];
+    try{
+      [stakedEvents, unstakedEvents, claimedEvents] = await Promise.all([
+        farmWithEvents.queryFilter(farmWithEvents.filters.Staked(addr), fromBlock, currentBlock),
+        farmWithEvents.queryFilter(farmWithEvents.filters.Unstaked(addr), fromBlock, currentBlock),
+        farmWithEvents.queryFilter(farmWithEvents.filters.RewardsClaimed(addr), fromBlock, currentBlock)
+      ]);
+    } catch(rpcErr){
+      // fallback: try last 1000 blocks
+      console.warn('Falling back to 1000 blocks:', rpcErr.message);
+      const smallFrom = Math.max(0, currentBlock - 1000);
+      [stakedEvents, unstakedEvents, claimedEvents] = await Promise.all([
+        farmWithEvents.queryFilter(farmWithEvents.filters.Staked(addr), smallFrom, currentBlock),
+        farmWithEvents.queryFilter(farmWithEvents.filters.Unstaked(addr), smallFrom, currentBlock),
+        farmWithEvents.queryFilter(farmWithEvents.filters.RewardsClaimed(addr), smallFrom, currentBlock)
+      ]);
+    }
 
     // combine and sort by block number descending
     const allEvents = [
@@ -1340,8 +1354,11 @@ async function loadHistory(){
     document.getElementById('history-body').innerHTML = rows;
 
   } catch(e){
-    console.error(e);
-    document.getElementById('history-body').innerHTML='<div class="ht-empty">Could not load history — try refreshing</div>';
+    console.error('History error:', e);
+    const msg = e.message?.includes('block range') ? 'RPC block range exceeded — try again' :
+                e.message?.includes('filter') ? 'Event filter not supported by RPC' :
+                'Could not load history — ' + (e.message||'unknown error');
+    document.getElementById('history-body').innerHTML='<div class="ht-empty">'+msg+'<br><br><small style="color:var(--muted3)">Open browser console for details</small></div>';
     document.getElementById('history-count').textContent='Error loading history';
   }
 }
