@@ -2014,10 +2014,12 @@ async function handleStake(){
     const tx=await farm.stake(1,amt);
     toast('Transaction sent…');
     await tx.wait();
+    const stakedAmt = parseFloat(v).toFixed(2);
     document.getElementById('stake-in').value='';
-    toast('Staked '+parseFloat(v).toFixed(2)+' MLT ✓','ok');
+    toast('Staked '+stakedAmt+' MLT ✓','ok');
     await refresh();
     setBtn('stake-btn','Stake MLT',false);
+    setTimeout(()=>openShareModal(stakedAmt), 1000);
   }catch(e){
     toast(e.reason||'Stake failed','err');
     setBtn('stake-btn','Stake MLT',false);
