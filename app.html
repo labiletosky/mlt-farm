@@ -1287,66 +1287,60 @@ async function loadHistory(){
   document.getElementById('history-count').textContent='Loading...';
 
   try{
-    const FARM_ABI_EVENTS = [
-      "event Staked(address indexed user, uint256 poolId, uint256 amount)",
-      "event Unstaked(address indexed user, uint256 poolId, uint256 amount)",
-      "event RewardsClaimed(address indexed user, uint256 poolId, uint256 amount)"
-    ];
+    // Use LiteForge block explorer API instead of eth_getLogs (more reliable)
+    const EXPLORER = 'https://liteforge.explorer.caldera.xyz/api/v2';
+    const farmLower = FARM_ADDR.toLowerCase();
 
-    const farmWithEvents = new ethers.Contract(FARM_ADDR, FARM_ABI_EVENTS, provider);
-    const currentBlock = await provider.getBlockNumber();
-    // use smaller block range to avoid RPC limits (try 5000 blocks first)
-    const BLOCK_RANGE = 5000;
-    const fromBlock = Math.max(0, currentBlock - BLOCK_RANGE);
+    // fetch all transactions for the user's address involving the farm contract
+    const res = await fetch(`${EXPLORER}/addresses/${addr}/transactions?filter=to%20%7C%20from&type=&method=`);
+    if(!res.ok) throw new Error('Explorer API failed: '+res.status);
+    const data = await res.json();
+    const txs = data.items || [];
 
-    // fetch events with retry on smaller range if fails
-    let stakedEvents=[], unstakedEvents=[], claimedEvents=[];
-    try{
-      [stakedEvents, unstakedEvents, claimedEvents] = await Promise.all([
-        farmWithEvents.queryFilter(farmWithEvents.filters.Staked(addr), fromBlock, currentBlock),
-        farmWithEvents.queryFilter(farmWithEvents.filters.Unstaked(addr), fromBlock, currentBlock),
-        farmWithEvents.queryFilter(farmWithEvents.filters.RewardsClaimed(addr), fromBlock, currentBlock)
-      ]);
-    } catch(rpcErr){
-      // fallback: try last 1000 blocks
-      console.warn('Falling back to 1000 blocks:', rpcErr.message);
-      const smallFrom = Math.max(0, currentBlock - 1000);
-      [stakedEvents, unstakedEvents, claimedEvents] = await Promise.all([
-        farmWithEvents.queryFilter(farmWithEvents.filters.Staked(addr), smallFrom, currentBlock),
-        farmWithEvents.queryFilter(farmWithEvents.filters.Unstaked(addr), smallFrom, currentBlock),
-        farmWithEvents.queryFilter(farmWithEvents.filters.RewardsClaimed(addr), smallFrom, currentBlock)
-      ]);
-    }
+    // filter only txs that interacted with our farm contract
+    const farmTxs = txs.filter(tx =>
+      tx.to?.hash?.toLowerCase() === farmLower ||
+      tx.from?.hash?.toLowerCase() === farmLower
+    ).slice(0, 20);
 
-    // combine and sort by block number descending
-    const allEvents = [
-      ...stakedEvents.map(e=>({type:'stake', amount:e.args[2], block:e.blockNumber, hash:e.transactionHash})),
-      ...unstakedEvents.map(e=>({type:'unstake', amount:e.args[2], block:e.blockNumber, hash:e.transactionHash})),
-      ...claimedEvents.map(e=>({type:'claim', amount:e.args[2], block:e.blockNumber, hash:e.transactionHash}))
-    ].sort((a,b)=>b.block-a.block);
+    document.getElementById('history-count').textContent = farmTxs.length + ' transaction' + (farmTxs.length!==1?'s':'') + ' found';
 
-    document.getElementById('history-count').textContent = allEvents.length + ' transaction' + (allEvents.length!==1?'s':'') + ' found';
-
-    if(allEvents.length===0){
-      document.getElementById('history-body').innerHTML='<div class="ht-empty">No transactions found yet — start staking!</div>';
+    if(farmTxs.length === 0){
+      document.getElementById('history-body').innerHTML='<div class="ht-empty">No transactions found yet — start staking! 🌾</div>';
       return;
     }
 
-    // get block timestamps for top 20
-    const top20 = allEvents.slice(0,20);
-    const blocks = await Promise.all(top20.map(e=>provider.getBlock(e.block)));
+    // decode method from tx input
+    const METHOD_MAP = {
+      '0x7acb7757': 'stake',
+      '0x2e1a7d4d': 'unstake',
+      '0x372500ab': 'claim',
+      '0x379607f5': 'claim',
+    };
 
-    const rows = top20.map((e,i)=>{
-      const ts = blocks[i]?.timestamp;
-      const date = ts ? new Date(ts*1000).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Block '+e.block;
-      const shortHash = e.hash.slice(0,6)+'...'+e.hash.slice(-4);
-      const typeLabel = e.type==='stake'?'Stake':e.type==='unstake'?'Unstake':'Claim';
-      const amt = parseFloat(ethers.formatEther(e.amount)).toFixed(2)+' MLT';
-      const explorerUrl = 'https://liteforge.explorer.caldera.xyz/tx/'+e.hash;
+    const rows = farmTxs.map(tx => {
+      const method = tx.method || '';
+      const input = tx.raw_input || tx.input || '';
+      const sig = input.slice(0,10).toLowerCase();
+
+      let type = METHOD_MAP[sig] ||
+        (method.toLowerCase().includes('stake') && !method.toLowerCase().includes('un') ? 'stake' :
+         method.toLowerCase().includes('unstake') ? 'unstake' :
+         method.toLowerCase().includes('claim') ? 'claim' : 'other');
+
+      const typeLabel = type==='stake'?'Stake':type==='unstake'?'Unstake':type==='claim'?'Claim':'Interact';
+      const date = tx.timestamp ? new Date(tx.timestamp).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+      const hash = tx.hash || '';
+      const shortHash = hash ? hash.slice(0,6)+'...'+hash.slice(-4) : '—';
+      const explorerUrl = 'https://liteforge.explorer.caldera.xyz/tx/'+hash;
+      const status = tx.status === 'ok' ? '✓' : '✗';
+      const statusColor = tx.status === 'ok' ? 'var(--green)' : '#EF4444';
+      const fee = tx.fee?.value ? (parseFloat(ethers.formatEther(tx.fee.value)).toFixed(6)+' zkLTC') : '—';
+
       return `<div class="ht-row">
-        <div><span class="ht-type ${e.type}">${typeLabel}</span></div>
-        <div class="ht-amount">${amt}</div>
-        <div class="ht-time">${date}</div>
+        <div><span class="ht-type ${type}">${typeLabel}</span></div>
+        <div class="ht-amount" style="font-size:12px">${date}</div>
+        <div class="ht-time" style="color:${statusColor}">${status} ${fee}</div>
         <div><a class="ht-hash" href="${explorerUrl}" target="_blank">${shortHash} ↗</a></div>
       </div>`;
     }).join('');
@@ -1355,11 +1349,14 @@ async function loadHistory(){
 
   } catch(e){
     console.error('History error:', e);
-    const msg = e.message?.includes('block range') ? 'RPC block range exceeded — try again' :
-                e.message?.includes('filter') ? 'Event filter not supported by RPC' :
-                'Could not load history — ' + (e.message||'unknown error');
-    document.getElementById('history-body').innerHTML='<div class="ht-empty">'+msg+'<br><br><small style="color:var(--muted3)">Open browser console for details</small></div>';
-    document.getElementById('history-count').textContent='Error loading history';
+    // fallback: just link to explorer
+    document.getElementById('history-body').innerHTML=`<div class="ht-empty">
+      Could not load history automatically.<br><br>
+      <a href="https://liteforge.explorer.caldera.xyz/address/${addr}" target="_blank" style="color:var(--gold);text-decoration:none">
+        View your full history on LiteForge Explorer ↗
+      </a>
+    </div>`;
+    document.getElementById('history-count').textContent='View on explorer instead';
   }
 }
 
