@@ -185,7 +185,7 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
 
 /* stats row */
 .stats-row{
-  display:grid;grid-template-columns:repeat(4,1fr);
+  display:grid;grid-template-columns:repeat(5,1fr);
   gap:1px;background:var(--line);
   border:1px solid var(--line);border-radius:var(--r2);
   overflow:hidden;width:100%;max-width:760px;
@@ -585,6 +585,47 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
 }
 
 
+
+/* ── leaderboard ── */
+.lb-table{
+  width:100%;max-width:760px;
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);overflow:hidden;
+  margin-bottom:1.25rem;animation:up .5s .15s both;
+}
+.lb-head{
+  display:grid;grid-template-columns:48px 1fr 140px 120px;
+  padding:.75rem 1.25rem;
+  border-bottom:1px solid var(--line);
+  font-size:11px;color:var(--muted);
+  letter-spacing:.06em;text-transform:uppercase;font-weight:500;
+}
+.lb-row{
+  display:grid;grid-template-columns:48px 1fr 140px 120px;
+  padding:1rem 1.25rem;
+  border-bottom:1px solid var(--line);
+  font-size:13px;transition:background .15s;
+  align-items:center;
+}
+.lb-row:last-child{border-bottom:none}
+.lb-row:hover{background:var(--surface2)}
+.lb-row.you{background:var(--gold-dim);border-left:3px solid var(--gold)}
+.lb-rank{font-size:16px;font-weight:700;color:var(--muted)}
+.lb-rank.gold{color:#FFD700}
+.lb-rank.silver{color:#C0C0C0}
+.lb-rank.bronze{color:#CD7F32}
+.lb-addr{font-size:13px;font-weight:500;color:var(--text)}
+.lb-addr-you{font-size:11px;color:var(--gold);margin-left:6px;font-weight:600}
+.lb-amount{font-size:14px;font-weight:600;color:var(--text)}
+.lb-rewards{font-size:13px;color:var(--green)}
+.lb-empty{padding:3rem;text-align:center;font-size:13px;color:var(--muted)}
+.lb-trophy{font-size:32px;margin-bottom:8px}
+@media(max-width:768px){
+  .lb-head{grid-template-columns:40px 1fr 110px}
+  .lb-row{grid-template-columns:40px 1fr 110px}
+  .lb-head>*:last-child,.lb-row>*:last-child{display:none}
+}
+
 /* ── transaction history ── */
 .history-page{}
 .history-table{
@@ -656,7 +697,7 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
   border-top:1px solid var(--line2);
   backdrop-filter:blur(16px);
   padding:8px 0 max(8px,env(safe-area-inset-bottom));
-  grid-template-columns:repeat(4,1fr);
+  grid-template-columns:repeat(5,1fr);
 }
 .btb-item{
   display:flex;flex-direction:column;align-items:center;gap:4px;
@@ -728,6 +769,7 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
     <button class="nav-pill" id="nav-pools" onclick="showPage('pools')">Pools</button>
     <button class="nav-pill" id="nav-analytics" onclick="showPage('analytics')">Analytics</button>
     <button class="nav-pill" id="nav-history" onclick="showPage('history')">History</button>
+    <button class="nav-pill" id="nav-leaderboard" onclick="showPage('leaderboard')">Leaderboard</button>
   </div>
   <div class="wallet-menu" id="wallet-menu">
     <button class="connect-btn" id="connect-btn" onclick="handleWalletClick()">
@@ -1131,6 +1173,38 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
   </div>
 </div><!-- end page-history -->
 
+<!-- LEADERBOARD PAGE -->
+<div class="page" id="page-leaderboard">
+  <div class="page-head">
+    <div class="page-eyebrow">
+      <svg viewBox="0 0 8 8"><circle cx="4" cy="4" r="4"/></svg>
+      Pool 1 · Live Rankings
+    </div>
+    <h1 class="page-title">🏆 <span>Leaderboard</span></h1>
+    <p class="page-sub">Top MLT stakers on LiteForge testnet. Stake more to climb the ranks.</p>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;width:100%;max-width:760px;margin-bottom:1rem">
+    <div style="font-size:13px;color:var(--muted)" id="lb-count">Loading stakers...</div>
+    <button class="refresh-btn" onclick="loadLeaderboard()">
+      <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
+  </div>
+
+  <div class="lb-table">
+    <div class="lb-head">
+      <div>Rank</div>
+      <div>Address</div>
+      <div>Staked</div>
+      <div>Rewards</div>
+    </div>
+    <div id="lb-body">
+      <div class="lb-empty"><div class="lb-trophy">🏆</div>Loading leaderboard...</div>
+    </div>
+  </div>
+</div><!-- end page-leaderboard -->
+
 </main>
 
 <!-- bottom tab bar (mobile) -->
@@ -1150,6 +1224,10 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
   <button class="btb-item" id="btb-history" onclick="showPage('history')">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
     <span>History</span>
+  </button>
+  <button class="btb-item" id="btb-leaderboard" onclick="showPage('leaderboard')">
+    <svg viewBox="0 0 24 24"><path d="M8 6l4-4 4 4"/><path d="M12 2v10"/><path d="M3 18h18"/><path d="M6 18v-4"/><path d="M12 18v-8"/><path d="M18 18v-2"/></svg>
+    <span>Ranks</span>
   </button>
 </div>
 
@@ -1209,7 +1287,7 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;padding:3rem 1
 <script>
 // page routing
 function showPage(page){
-  ['earn','pools','analytics','history'].forEach(p=>{
+  ['earn','pools','analytics','history','leaderboard'].forEach(p=>{
     const pg=document.getElementById('page-'+p);
     if(pg)pg.classList.toggle('active',p===page);
     const nav=document.getElementById('nav-'+p);
@@ -1221,6 +1299,7 @@ function showPage(page){
   if(page==='analytics') populateAnalytics();
   if(page==='pools') populatePools();
   if(page==='history') loadHistory();
+  if(page==='leaderboard') loadLeaderboard();
 }
 
 // chart bars
@@ -1276,6 +1355,91 @@ function populateAnalytics(){
     document.getElementById('an-rw').textContent=fmt(rw)+' MLT';
   }).catch(()=>{});
 }
+// ── leaderboard ─────────────────────────────────────────────
+async function loadLeaderboard(){
+  document.getElementById('lb-body').innerHTML='<div class="lb-empty"><span class="spin"></span> Loading rankings...</div>';
+  document.getElementById('lb-count').textContent='Loading...';
+  try{
+    // fetch all Staked events from explorer API to build leaderboard
+    const EXPLORER = 'https://liteforge.explorer.caldera.xyz/api/v2';
+
+    // get all transactions to the farm contract
+    const res = await fetch(`${EXPLORER}/addresses/${FARM_ADDR}/transactions?filter=to&limit=50`);
+    if(!res.ok) throw new Error('Explorer API failed');
+    const data = await res.json();
+    const txs = data.items || [];
+
+    // build staker map from userInfo for unique addresses found
+    const stakerAddrs = [...new Set(txs.map(tx=>tx.from?.hash).filter(Boolean))];
+
+    if(stakerAddrs.length === 0){
+      document.getElementById('lb-body').innerHTML='<div class="lb-empty"><div class="lb-trophy">🏆</div>No stakers yet — be the first!</div>';
+      document.getElementById('lb-count').textContent='0 stakers';
+      return;
+    }
+
+    // fetch userInfo for each staker
+    const FARM_ABI_READ = [
+      "function userInfo(uint256,address) view returns (uint256,uint256,uint256)",
+      "function pendingRewards(uint256,address) view returns (uint256)"
+    ];
+    const farmRead = new ethers.Contract(FARM_ADDR, FARM_ABI_READ, provider);
+
+    const stakerData = await Promise.all(
+      stakerAddrs.map(async a => {
+        try{
+          const [ui, rw] = await Promise.all([
+            farmRead.userInfo(1, a),
+            farmRead.pendingRewards(1, a)
+          ]);
+          return { addr: a, staked: ui[0], rewards: rw };
+        } catch{ return { addr: a, staked: 0n, rewards: 0n }; }
+      })
+    );
+
+    // filter only active stakers and sort by staked amount
+    const active = stakerData
+      .filter(s => s.staked > 0n)
+      .sort((a,b) => (b.staked > a.staked ? 1 : -1));
+
+    document.getElementById('lb-count').textContent = active.length + ' active staker' + (active.length!==1?'s':'');
+
+    if(active.length === 0){
+      document.getElementById('lb-body').innerHTML='<div class="lb-empty"><div class="lb-trophy">🏆</div>No active stakers yet — be the first!</div>';
+      return;
+    }
+
+    const rankEmoji = ['🥇','🥈','🥉'];
+    const rankClass = ['gold','silver','bronze'];
+
+    const rows = active.slice(0,20).map((s,i)=>{
+      const isYou = addr && s.addr.toLowerCase()===addr.toLowerCase();
+      const shortAddr = s.addr.slice(0,6)+'...'+s.addr.slice(-4);
+      const stakedAmt = parseFloat(ethers.formatEther(s.staked)).toFixed(2)+' MLT';
+      const rewardsAmt = parseFloat(ethers.formatEther(s.rewards)).toFixed(4)+' MLT';
+      const rank = i < 3 ? rankEmoji[i] : '#'+(i+1);
+      const rankCls = i < 3 ? rankClass[i] : '';
+      const explorerUrl = 'https://liteforge.explorer.caldera.xyz/address/'+s.addr;
+      return `<div class="lb-row${isYou?' you':''}">
+        <div class="lb-rank ${rankCls}">${rank}</div>
+        <div>
+          <a class="lb-addr" href="${explorerUrl}" target="_blank">${shortAddr}</a>
+          ${isYou?'<span class="lb-addr-you">← You</span>':''}
+        </div>
+        <div class="lb-amount">${stakedAmt}</div>
+        <div class="lb-rewards">${rewardsAmt}</div>
+      </div>`;
+    }).join('');
+
+    document.getElementById('lb-body').innerHTML = rows;
+
+  } catch(e){
+    console.error('Leaderboard error:', e);
+    document.getElementById('lb-body').innerHTML='<div class="lb-empty">Could not load leaderboard — try refreshing</div>';
+    document.getElementById('lb-count').textContent='Error loading';
+  }
+}
+
 // ── transaction history ─────────────────────────────────────
 async function loadHistory(){
   if(!addr){
